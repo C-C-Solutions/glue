@@ -30,20 +30,50 @@ glue/
 
 ## 🛠️ Tech Stack
 
-- **Runtime**: Node.js 20+
+- **Runtime**: Node.js 22 LTS
 - **Language**: TypeScript 5.x
 - **Package Manager**: pnpm with workspaces
 - **Build System**: Turborepo
-- **Database**: MongoDB with Mongoose
-- **Queue**: BullMQ with Redis
+- **Database**: MongoDB 8
+- **Queue**: BullMQ with Redis 8.4
 - **API Framework**: Fastify
 - **Validation**: Zod
+- **Dev Environment**: VS Code Dev Containers support
 
 ## 🏁 Getting Started
 
 ### Prerequisites
 
-- Node.js 20+ and pnpm 8+
+- Node.js 22+ and pnpm 8+
+- Docker and Docker Compose (for local development)
+- **OR** VS Code with Dev Containers extension (recommended)
+
+### Option 1: Dev Container (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/C-C-Solutions/glue.git
+cd glue
+```
+
+2. Open in VS Code:
+```bash
+code .
+```
+
+3. When prompted, click "Reopen in Container" (or press F1 and select "Dev Containers: Reopen in Container")
+
+The dev container will automatically:
+- Set up Node.js 22 environment
+- Start MongoDB 8 and Redis 8.4
+- Install dependencies with pnpm
+- Configure VS Code extensions
+
+### Option 2: Manual Setup
+
+### Prerequisites
+
+- Node.js 22+ and pnpm 8+
 - Docker and Docker Compose (for local development)
 
 ### Installation

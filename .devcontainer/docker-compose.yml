@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:22
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    network_mode: service:mongodb
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://localhost:27017/glue
+      - REDIS_URL=redis://localhost:6379
+      - LOG_LEVEL=info
+      - PORT=3000
+
+  mongodb:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=glue
+    ports:
+      - "27017:27017"
+      - "6379:6379"
+      - "3000:3000"
+
+  redis:
+    image: redis:8.4-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    network_mode: service:mongodb
+
+volumes:
+  mongodb-data:
+  redis-data:
