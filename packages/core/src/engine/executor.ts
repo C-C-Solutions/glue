@@ -1,4 +1,4 @@
-import { WorkflowDefinition, WorkflowExecution, StepExecution } from '../types';
+import { WorkflowDefinition, WorkflowExecution } from '../types';
 import { StepRunner } from './step-runner';
 
 /**
@@ -98,7 +98,7 @@ export class WorkflowExecutor {
   /**
    * Resume a paused or failed execution (placeholder for future implementation)
    */
-  async resume(executionId: string): Promise<WorkflowExecution> {
+  async resume(_executionId: string): Promise<WorkflowExecution> {
     // TODO: Load execution from storage and resume from last successful step
     throw new Error('Resume not yet implemented');
   }
@@ -106,7 +106,7 @@ export class WorkflowExecutor {
   /**
    * Cancel an ongoing execution (placeholder for future implementation)
    */
-  async cancel(executionId: string): Promise<void> {
+  async cancel(_executionId: string): Promise<void> {
     // TODO: Mark execution as cancelled and stop processing
     throw new Error('Cancel not yet implemented');
   }

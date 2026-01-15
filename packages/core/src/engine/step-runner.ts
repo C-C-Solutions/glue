@@ -115,11 +115,11 @@ export class StepRunner {
   private async executeCondition(
     step: StepDefinition,
     input: Record<string, unknown>,
-    context: Record<string, unknown>
+    _context: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     // Simple condition evaluation (can be extended)
     const condition = (step.config as any).condition;
-    const result = this.evaluateCondition(condition, input, context);
+    const result = this.evaluateCondition(condition, input);
     return { conditionMet: result };
   }
   
@@ -128,8 +128,7 @@ export class StepRunner {
    */
   private evaluateCondition(
     condition: any,
-    input: Record<string, unknown>,
-    context: Record<string, unknown>
+    input: Record<string, unknown>
   ): boolean {
     // Basic implementation - can be extended with more complex logic
     if (!condition) return true;

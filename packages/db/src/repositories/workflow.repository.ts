@@ -1,5 +1,5 @@
 import { WorkflowDefinition } from '@glue/core';
-import { WorkflowModel, WorkflowDocument } from '../models/workflow.model';
+import { WorkflowModel } from '../models/workflow.model';
 
 /**
  * Workflow repository for database operations

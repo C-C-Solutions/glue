@@ -1,5 +1,5 @@
 import { WorkflowExecution } from '@glue/core';
-import { ExecutionModel, ExecutionDocument } from '../models/execution.model';
+import { ExecutionModel } from '../models/execution.model';
 
 /**
  * Execution repository for database operations

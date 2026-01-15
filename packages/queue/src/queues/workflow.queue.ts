@@ -1,6 +1,6 @@
-import { Queue, QueueOptions } from 'bullmq';
+import { Queue } from 'bullmq';
 import { getRedisConnection } from '../connection';
-import { WorkflowJobData } from '../jobs';
+import { WorkflowJobData, ExecuteWorkflowJob, ResumeWorkflowJob } from '../jobs';
 
 /**
  * Workflow queue name constant
@@ -8,20 +8,12 @@ import { WorkflowJobData } from '../jobs';
 export const WORKFLOW_QUEUE_NAME = 'glue:workflows';
 
 /**
- * Workflow queue instance
- */
-let workflowQueue: WorkflowQueue | null = null;
-
-/**
  * Workflow queue wrapper
  */
 export class WorkflowQueue {
-  private queue: import('bullmq').Queue<WorkflowJobData>;
+  private queue: Queue<WorkflowJobData>;
   
   constructor(redisUrl: string) {
-    const { Queue } = require('bullmq');
-    const { getRedisConnection } = require('../connection');
-    
     const connection = getRedisConnection(redisUrl);
     
     this.queue = new Queue(WORKFLOW_QUEUE_NAME, {
