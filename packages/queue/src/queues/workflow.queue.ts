@@ -5,7 +5,7 @@ import { WorkflowJobData, ExecuteWorkflowJob, ResumeWorkflowJob } from '../jobs'
 /**
  * Workflow queue name constant
  */
-export const WORKFLOW_QUEUE_NAME = 'glue:workflows';
+export const WORKFLOW_QUEUE_NAME = 'glue-workflows';
 
 /**
  * Workflow queue wrapper
