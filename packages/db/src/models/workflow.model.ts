@@ -15,6 +15,7 @@ export interface WorkflowDocument extends Document {
   metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
+  toWorkflowDefinition(): WorkflowDefinition;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { WorkflowExecution } from '@glue/core';
-import { ExecutionModel } from '../models/execution.model';
+import { ExecutionModel, ExecutionDocument } from '../models/execution.model';
 
 /**
  * Execution repository for database operations
@@ -22,7 +22,7 @@ export class ExecutionRepository {
       metadata: execution.metadata,
     });
     
-    return (doc as any).toWorkflowExecution();
+    return (doc as ExecutionDocument).toWorkflowExecution();
   }
   
   /**
@@ -30,7 +30,7 @@ export class ExecutionRepository {
    */
   async findById(id: string): Promise<WorkflowExecution | null> {
     const doc = await ExecutionModel.findOne({ executionId: id });
-    return doc ? (doc as any).toWorkflowExecution() : null;
+    return doc ? (doc as ExecutionDocument).toWorkflowExecution() : null;
   }
   
   /**
@@ -41,7 +41,7 @@ export class ExecutionRepository {
       .limit(limit)
       .skip(skip)
       .sort({ startedAt: -1 });
-    return docs.map((doc: any) => doc.toWorkflowExecution());
+    return docs.map((doc) => (doc as ExecutionDocument).toWorkflowExecution());
   }
   
   /**
@@ -61,7 +61,7 @@ export class ExecutionRepository {
       { new: true }
     );
     
-    return doc ? (doc as any).toWorkflowExecution() : null;
+    return doc ? (doc as ExecutionDocument).toWorkflowExecution() : null;
   }
   
   /**

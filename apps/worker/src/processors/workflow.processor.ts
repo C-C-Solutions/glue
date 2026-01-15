@@ -69,24 +69,20 @@ export class WorkflowProcessor {
   
   /**
    * Process resume workflow job
+   * @note Resume functionality is not yet implemented in the executor
    */
   private async processResume(job: Job<ResumeWorkflowJob>): Promise<void> {
     const { executionId } = job.data;
     
-    console.log(`Resuming execution: ${executionId}`);
+    console.log(`Resume requested for execution: ${executionId}`);
     
-    // Load execution
+    // Check if execution exists
     const execution = await this.executionRepo.findById(executionId);
     if (!execution) {
       throw new Error(`Execution not found: ${executionId}`);
     }
     
-    // Resume execution
-    const updated = await this.executor.resume(executionId);
-    
-    // Update execution in database
-    await this.executionRepo.update(executionId, updated);
-    
-    console.log(`Execution ${executionId} resumed, status: ${updated.status}`);
+    // Resume is not yet implemented - fail gracefully
+    throw new Error('Resume functionality is not yet implemented. Please use execute to start a new workflow run instead.');
   }
 }

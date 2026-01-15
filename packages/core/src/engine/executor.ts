@@ -96,18 +96,29 @@ export class WorkflowExecutor {
   }
   
   /**
-   * Resume a paused or failed execution (placeholder for future implementation)
+   * Resume a paused or failed execution
+   * @todo Implement resume functionality
+   * @throws Error indicating resume is not yet implemented
    */
   async resume(_executionId: string): Promise<WorkflowExecution> {
     // TODO: Load execution from storage and resume from last successful step
+    // This will require:
+    // 1. Loading execution state from database
+    // 2. Identifying last completed step
+    // 3. Resuming from next step in sequence
     throw new Error('Resume not yet implemented');
   }
   
   /**
-   * Cancel an ongoing execution (placeholder for future implementation)
+   * Cancel an ongoing execution
+   * @todo Implement cancel functionality
+   * @throws Error indicating cancel is not yet implemented
    */
   async cancel(_executionId: string): Promise<void> {
     // TODO: Mark execution as cancelled and stop processing
+    // This will require:
+    // 1. Updating execution status to 'cancelled'
+    // 2. Signaling worker to stop processing
     throw new Error('Cancel not yet implemented');
   }
   

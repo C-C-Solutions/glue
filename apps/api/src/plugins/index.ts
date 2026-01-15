@@ -1,3 +1,4 @@
+import cors from '@fastify/cors';
 import { FastifyPluginAsync } from 'fastify';
 
 /**
@@ -5,7 +6,7 @@ import { FastifyPluginAsync } from 'fastify';
  */
 const plugins: FastifyPluginAsync = async (fastify) => {
   // CORS plugin
-  await fastify.register(require('@fastify/cors'), {
+  await fastify.register(cors, {
     origin: true,
   });
 };

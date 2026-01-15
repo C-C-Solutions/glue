@@ -15,6 +15,7 @@ export interface ExecutionDocument extends Document {
   completedAt?: Date;
   error?: ExecutionError;
   metadata?: Record<string, unknown>;
+  toWorkflowExecution(): WorkflowExecution;
 }
 
 /**

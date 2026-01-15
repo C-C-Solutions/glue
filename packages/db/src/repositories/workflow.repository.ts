@@ -1,5 +1,5 @@
 import { WorkflowDefinition } from '@glue/core';
-import { WorkflowModel } from '../models/workflow.model';
+import { WorkflowModel, WorkflowDocument } from '../models/workflow.model';
 
 /**
  * Workflow repository for database operations
@@ -20,7 +20,7 @@ export class WorkflowRepository {
       metadata: workflow.metadata,
     });
     
-    return (doc as any).toWorkflowDefinition();
+    return (doc as WorkflowDocument).toWorkflowDefinition();
   }
   
   /**
@@ -28,7 +28,7 @@ export class WorkflowRepository {
    */
   async findById(id: string): Promise<WorkflowDefinition | null> {
     const doc = await WorkflowModel.findOne({ workflowId: id });
-    return doc ? (doc as any).toWorkflowDefinition() : null;
+    return doc ? (doc as WorkflowDocument).toWorkflowDefinition() : null;
   }
   
   /**
@@ -36,7 +36,7 @@ export class WorkflowRepository {
    */
   async findAll(limit = 100, skip = 0): Promise<WorkflowDefinition[]> {
     const docs = await WorkflowModel.find().limit(limit).skip(skip).sort({ createdAt: -1 });
-    return docs.map((doc: any) => doc.toWorkflowDefinition());
+    return docs.map((doc) => (doc as WorkflowDocument).toWorkflowDefinition());
   }
   
   /**
@@ -57,7 +57,7 @@ export class WorkflowRepository {
       { new: true }
     );
     
-    return doc ? (doc as any).toWorkflowDefinition() : null;
+    return doc ? (doc as WorkflowDocument).toWorkflowDefinition() : null;
   }
   
   /**
