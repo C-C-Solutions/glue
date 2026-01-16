@@ -243,6 +243,7 @@ This approach ensures that:
 - Infrastructure changes are made in one place and automatically apply to dev containers
 - Dev and production configurations never drift apart
 - Dev-specific settings (like volume mounts, network modes) don't pollute the base configuration
+- Dev container uses separate volumes (`mongodb-data-dev`, `redis-data-dev`) to isolate development data from standalone usage
 
 ### Using Docker Compose Standalone
 

@@ -19,7 +19,7 @@ services:
   mongodb:
     restart: unless-stopped
     volumes:
-      - mongodb-data-dev:/data/db  # Use dev-specific volume
+      - mongodb-data-dev:/data/db  # Intentionally uses a separate volume to isolate dev data from standalone usage
     ports:
       - "6379:6379"  # Forward Redis port through MongoDB service
       - "3000:3000"  # Forward API port through MongoDB service
@@ -29,7 +29,7 @@ services:
   redis:
     restart: unless-stopped
     volumes:
-      - redis-data-dev:/data  # Use dev-specific volume
+      - redis-data-dev:/data  # Intentionally uses a separate volume to isolate dev data from standalone usage
     network_mode: service:mongodb
 
 volumes:
