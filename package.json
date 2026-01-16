@@ -1,0 +1,24 @@
+{
+  "name": "glue",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An opinionated integration engine for connecting services, transforming data, and orchestrating workflows",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.3.3",
+    "turbo": "^1.11.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.12.0"
+}
