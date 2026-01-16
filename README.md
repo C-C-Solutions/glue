@@ -227,11 +227,3 @@ BullMQ worker processes jobs from Redis queue:
 | `MONGODB_URI` | MongoDB connection string | Required |
 | `REDIS_URL` | Redis connection string | Required |
 | `LOG_LEVEL` | Logging level | `info` |
-
-## 📄 License
-
-MIT
-
-## 🤝 Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
