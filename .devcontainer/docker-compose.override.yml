@@ -20,6 +20,18 @@ services:
       redis:
         condition: service_healthy
 
+  # Override API for dev-specific settings
+  # In dev mode, we don't run the API container since we use the dev container
+  api:
+    profiles:
+      - standalone  # Only run when explicitly requested with --profile standalone
+
+  # Override worker for dev-specific settings
+  # In dev mode, we don't run the worker container since we use the dev container
+  worker:
+    profiles:
+      - standalone  # Only run when explicitly requested with --profile standalone
+
   # Override MongoDB for dev-specific settings
   # Keep MongoDB configuration minimal for dev; ports are managed per-service
   mongodb:
