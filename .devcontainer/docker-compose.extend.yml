@@ -1,0 +1,37 @@
+services:
+  # Dev container service
+  # Uses network_mode: service:mongodb so all services share localhost
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:22
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    network_mode: service:mongodb
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://localhost:27017/glue
+      - REDIS_URL=redis://localhost:6379
+      - LOG_LEVEL=info
+      - PORT=3000
+
+  # Override MongoDB for dev-specific settings
+  # Ports for Redis and API are forwarded here since they share the network namespace
+  mongodb:
+    restart: unless-stopped
+    volumes:
+      - mongodb-data-dev:/data/db  # Intentionally uses a separate volume to isolate dev data from standalone usage
+    ports:
+      - "6379:6379"  # Forward Redis port through MongoDB service
+      - "3000:3000"  # Forward API port through MongoDB service
+
+  # Override Redis for dev-specific settings
+  # Uses network_mode: service:mongodb to share network namespace
+  redis:
+    restart: unless-stopped
+    volumes:
+      - redis-data-dev:/data  # Intentionally uses a separate volume to isolate dev data from standalone usage
+    network_mode: service:mongodb
+
+volumes:
+  mongodb-data-dev:
+  redis-data-dev:
