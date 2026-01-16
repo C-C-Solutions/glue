@@ -1,4 +1,8 @@
 # Production image
+# Note: This Dockerfile uses pre-built artifacts and node_modules from the local environment
+# because the build environment has network restrictions that prevent installing packages
+# during the Docker build. In a production environment with proper network access,
+# a multi-stage build with pnpm install would be more appropriate.
 FROM node:22-slim
 
 WORKDIR /app
