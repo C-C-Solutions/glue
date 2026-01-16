@@ -4,7 +4,7 @@ services:
   glue:
     image: mcr.microsoft.com/devcontainers/typescript-node:22
     volumes:
-      - ..:/workspace:cached
+      - .:/workspace:cached
     command: sleep infinity
     ports:
       - "3000:3000"

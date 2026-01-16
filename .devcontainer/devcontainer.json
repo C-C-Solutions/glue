@@ -4,7 +4,7 @@
     "../docker-compose.yml",
     "docker-compose.override.yml"
   ],
-  "service": "app",
+  "service": "glue",
   "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {
@@ -48,6 +48,5 @@
       "label": "Redis"
     }
   },
-  "postCreateCommand": "pnpm install",
-  "remoteUser": "node"
+  "postCreateCommand": "pnpm install"
 }
