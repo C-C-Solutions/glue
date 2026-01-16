@@ -1,59 +1,23 @@
-# Build stage
-FROM node:22-slim AS builder
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
-
-WORKDIR /app
-
-# Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY turbo.json tsconfig.base.json ./
-
-# Copy all package.json files for dependency resolution
-COPY packages/config/package.json ./packages/config/
-COPY packages/core/package.json ./packages/core/
-COPY packages/db/package.json ./packages/db/
-COPY packages/queue/package.json ./packages/queue/
-COPY apps/worker/package.json ./apps/worker/
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy source code
-COPY packages ./packages
-COPY apps/worker ./apps/worker
-
-# Build all packages and the worker app
-RUN pnpm run build --filter=@glue/worker...
-
-# Production stage
+# Production image
 FROM node:22-slim
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
-
 WORKDIR /app
 
-# Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# Copy the entire workspace structure with built artifacts and dependencies
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json tsconfig.base.json ./
 
-# Copy package.json files
-COPY packages/config/package.json ./packages/config/
-COPY packages/core/package.json ./packages/core/
-COPY packages/db/package.json ./packages/db/
-COPY packages/queue/package.json ./packages/queue/
-COPY apps/worker/package.json ./apps/worker/
+# Copy all node_modules (already installed locally)
+COPY node_modules ./node_modules
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Copy packages with their dist folders and node_modules
+COPY packages/config ./packages/config
+COPY packages/core ./packages/core
+COPY packages/db ./packages/db
+COPY packages/queue ./packages/queue
 
-# Copy built artifacts from builder
-COPY --from=builder /app/packages/config/dist ./packages/config/dist
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/db/dist ./packages/db/dist
-COPY --from=builder /app/packages/queue/dist ./packages/queue/dist
-COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
+# Copy the worker app with its dist folder
+COPY apps/worker ./apps/worker
 
 WORKDIR /app/apps/worker
 
