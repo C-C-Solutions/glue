@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       turbo:
         specifier: ^1.11.0
         version: 1.13.4
@@ -43,8 +43,8 @@ importers:
         version: 4.29.1
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       tsx:
         specifier: ^4.7.0
         version: 4.21.0
@@ -53,7 +53,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^1.0.4
-        version: 1.6.1(@types/node@20.19.29)
+        version: 1.6.1(@types/node@22.19.7)
 
   apps/worker:
     dependencies:
@@ -77,8 +77,8 @@ importers:
         version: 16.6.1
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       tsx:
         specifier: ^4.7.0
         version: 4.21.0
@@ -87,7 +87,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^1.0.4
-        version: 1.6.1(@types/node@20.19.29)
+        version: 1.6.1(@types/node@22.19.7)
 
   packages/config:
     dependencies:
@@ -96,8 +96,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -109,14 +109,14 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
       vitest:
         specifier: ^1.0.4
-        version: 1.6.1(@types/node@20.19.29)
+        version: 1.6.1(@types/node@22.19.7)
 
   packages/db:
     dependencies:
@@ -128,14 +128,14 @@ importers:
         version: 8.21.0
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
       vitest:
         specifier: ^1.0.4
-        version: 1.6.1(@types/node@20.19.29)
+        version: 1.6.1(@types/node@22.19.7)
 
   packages/queue:
     dependencies:
@@ -147,14 +147,14 @@ importers:
         version: 5.9.1
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.29
+        specifier: ^22.10.0
+        version: 22.19.7
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
       vitest:
         specifier: ^1.0.4
-        version: 1.6.1(@types/node@20.19.29)
+        version: 1.6.1(@types/node@22.19.7)
 
 packages:
 
@@ -911,8 +911,8 @@ packages:
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
     dev: true
 
-  /@types/node@20.19.29:
-    resolution: {integrity: sha512-YrT9ArrGaHForBaCNwFjoqJWmn8G1Pr7+BH/vwyLHciA9qT/wSiuOhxGCT50JA5xLvFBd6PIiGkE3afxcPE1nw==}
+  /@types/node@22.19.7:
+    resolution: {integrity: sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==}
     dependencies:
       undici-types: 6.21.0
     dev: true
@@ -2022,7 +2022,7 @@ packages:
     hasBin: true
     dev: false
 
-  /vite-node@1.6.1(@types/node@20.19.29):
+  /vite-node@1.6.1(@types/node@22.19.7):
     resolution: {integrity: sha512-YAXkfvGtuTzwWbDSACdJSg4A4DZiAqckWe90Zapc/sEX3XvHcw1NdurM/6od8J207tSDqNbSsgdCacBgvJKFuA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -2031,7 +2031,7 @@ packages:
       debug: 4.4.3
       pathe: 1.1.2
       picocolors: 1.1.1
-      vite: 5.4.21(@types/node@20.19.29)
+      vite: 5.4.21(@types/node@22.19.7)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -2044,7 +2044,7 @@ packages:
       - terser
     dev: true
 
-  /vite@5.4.21(@types/node@20.19.29):
+  /vite@5.4.21(@types/node@22.19.7):
     resolution: {integrity: sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -2075,7 +2075,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 22.19.7
       esbuild: 0.21.5
       postcss: 8.5.6
       rollup: 4.55.1
@@ -2083,7 +2083,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@1.6.1(@types/node@20.19.29):
+  /vitest@1.6.1(@types/node@22.19.7):
     resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -2108,7 +2108,7 @@ packages:
       jsdom:
         optional: true
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 22.19.7
       '@vitest/expect': 1.6.1
       '@vitest/runner': 1.6.1
       '@vitest/snapshot': 1.6.1
@@ -2126,8 +2126,8 @@ packages:
       strip-literal: 2.1.1
       tinybench: 2.9.0
       tinypool: 0.8.4
-      vite: 5.4.21(@types/node@20.19.29)
-      vite-node: 1.6.1(@types/node@20.19.29)
+      vite: 5.4.21(@types/node@22.19.7)
+      vite-node: 1.6.1(@types/node@22.19.7)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - less
