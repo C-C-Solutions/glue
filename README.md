@@ -14,7 +14,7 @@ An opinionated integration engine for connecting services, transforming data, an
 
 ## 📦 Monorepo Structure
 
-```
+```plaintext
 glue/
 ├── apps/
 │   ├── api/          # REST API service (Fastify)
@@ -53,19 +53,22 @@ glue/
 ### Option 1: Dev Container (Recommended)
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/C-C-Solutions/glue.git
 cd glue
 ```
 
-2. Open in VS Code:
+1. Open in VS Code:
+
 ```bash
 code .
 ```
 
-3. When prompted, click "Reopen in Container" (or press F1 and select "Dev Containers: Reopen in Container")
+1. When prompted, click "Reopen in Container" (or press F1 and select "Dev Containers: Reopen in Container")
 
 The dev container will automatically:
+
 - Set up Node.js 22 environment
 - Start MongoDB 8 and Redis 8.4
 - Install dependencies with pnpm
@@ -81,28 +84,33 @@ The dev container will automatically:
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/C-C-Solutions/glue.git
 cd glue
 ```
 
-2. Install dependencies:
+1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
-3. Set up environment variables:
+1. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. Start infrastructure (MongoDB + Redis):
+1. Start infrastructure (MongoDB + Redis):
+
 ```bash
 docker compose up -d
 ```
 
-5. Build all packages:
+1. Build all packages:
+
 ```bash
 pnpm build
 ```
@@ -110,11 +118,13 @@ pnpm build
 ### Development
 
 Start all services in development mode:
+
 ```bash
 pnpm dev
 ```
 
 Or start individual services:
+
 ```bash
 # API server
 cd apps/api
@@ -173,6 +183,7 @@ curl http://localhost:3000/executions/{execution-id}
 ## 🧪 Testing
 
 Run tests across all packages:
+
 ```bash
 pnpm test
 ```
@@ -180,11 +191,13 @@ pnpm test
 ## 🏗️ Building
 
 Build all packages for production:
+
 ```bash
 pnpm build
 ```
 
 Type checking:
+
 ```bash
 pnpm type-check
 ```
@@ -194,6 +207,7 @@ pnpm type-check
 ### Workflow Definition
 
 Workflows are defined as JSON objects with:
+
 - **Metadata**: ID, name, version, description
 - **Trigger**: How the workflow starts (manual, webhook, schedule, event)
 - **Steps**: Array of step definitions (connectors, transformers, conditions)
@@ -202,6 +216,7 @@ Workflows are defined as JSON objects with:
 ### Execution Engine
 
 The execution engine (`@glue/core`):
+
 - Executes steps sequentially with DAG support for dependencies
 - Persists execution state after each step
 - Supports retry policies per step
@@ -210,25 +225,27 @@ The execution engine (`@glue/core`):
 ### Connectors
 
 Connectors integrate with external systems:
+
 - **HTTP Connector**: REST API calls with variable interpolation
 - **Base Connector**: Abstract class for custom connectors
 
 ### Queue Processing
 
 BullMQ worker processes jobs from Redis queue:
+
 - Reliable job processing with retries
 - Concurrent execution
 - Job progress tracking
 
 ## 🔒 Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment | `development` |
-| `PORT` | API server port | `3000` |
-| `MONGODB_URI` | MongoDB connection string | Required |
-| `REDIS_URL` | Redis connection string | Required |
-| `LOG_LEVEL` | Logging level | `info` |
+| Variable      | Description               | Default       |
+| ------------- | ------------------------- | ------------- |
+| `NODE_ENV`    | Environment               | `development` |
+| `PORT`        | API server port           | `3000`        |
+| `MONGODB_URI` | MongoDB connection string | Required      |
+| `REDIS_URL`   | Redis connection string   | Required      |
+| `LOG_LEVEL`   | Logging level             | `info`        |
 
 ## 🐳 Docker Compose Configuration
 
@@ -240,6 +257,7 @@ This repository uses the **extension pattern** for docker-compose files to maint
 ### Why This Pattern?
 
 This approach ensures that:
+
 - Infrastructure changes are made in one place and automatically apply to dev containers
 - Dev and production configurations never drift apart
 - Dev-specific settings (like volume mounts, network modes) don't pollute the base configuration
@@ -260,8 +278,8 @@ docker compose down
 ### Dev Container Usage
 
 The devcontainer automatically loads both files in sequence:
+
 1. First, the base `docker-compose.yml` (infrastructure)
 2. Then, `.devcontainer/docker-compose.override.yml` (dev overrides)
 
-All services share a network namespace via `network_mode: service:mongodb`, allowing them to communicate via `localhost`.
-
+Services use the default Docker network; use service names (e.g., `mongodb`, `redis`) as hosts — for example `mongodb://mongodb:27017` and `redis://redis:6379`.

@@ -1,36 +1,42 @@
 services:
   # Dev container service
-  # Uses network_mode: service:mongodb so all services share localhost
-  app:
+  # Uses the default Docker network; services resolve each other by service name
+  glue:
     image: mcr.microsoft.com/devcontainers/typescript-node:22
     volumes:
       - ..:/workspace:cached
     command: sleep infinity
-    network_mode: service:mongodb
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://localhost:27017/glue
-      - REDIS_URL=redis://localhost:6379
+      - MONGODB_URI=mongodb://mongodb:27017/glue
+      - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - PORT=3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # Override MongoDB for dev-specific settings
-  # Ports for Redis and API are forwarded here since they share the network namespace
+  # Keep MongoDB configuration minimal for dev; ports are managed per-service
   mongodb:
     restart: unless-stopped
     volumes:
-      - mongodb-data-dev:/data/db  # Intentionally uses a separate volume to isolate dev data from standalone usage
-    ports:
-      - "6379:6379"  # Forward Redis port through MongoDB service
-      - "3000:3000"  # Forward API port through MongoDB service
+      - mongodb-data-dev:/data/db # Intentionally uses a separate volume to isolate dev data from standalone usage
+    networks:
+      - default
 
   # Override Redis for dev-specific settings
-  # Uses network_mode: service:mongodb to share network namespace
+  # Uses default Docker network so it can be reached at host `redis`
   redis:
     restart: unless-stopped
     volumes:
-      - redis-data-dev:/data  # Intentionally uses a separate volume to isolate dev data from standalone usage
-    network_mode: service:mongodb
+      - redis-data-dev:/data # Intentionally uses a separate volume to isolate dev data from standalone usage
+    networks:
+      - default
 
 volumes:
   mongodb-data-dev:
