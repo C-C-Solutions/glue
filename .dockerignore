@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs (will be built in container)
+dist
+build
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# Docker
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# Dev container
+.devcontainer
+
+# Testing
+coverage
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
+.turbo
