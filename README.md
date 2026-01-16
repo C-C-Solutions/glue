@@ -229,3 +229,38 @@ BullMQ worker processes jobs from Redis queue:
 | `MONGODB_URI` | MongoDB connection string | Required |
 | `REDIS_URL` | Redis connection string | Required |
 | `LOG_LEVEL` | Logging level | `info` |
+
+## 🐳 Docker Compose Configuration
+
+This repository uses the **extension pattern** for docker-compose files to maintain a single source of truth:
+
+- **`docker-compose.yml`** (root): Defines infrastructure services (MongoDB, Redis) as they exist in production/staging
+- **`.devcontainer/docker-compose.extend.yml`**: Contains only dev-specific overrides (app service, dev volumes, shared network)
+
+### Why This Pattern?
+
+This approach ensures that:
+- Infrastructure changes are made in one place and automatically apply to dev containers
+- Dev and production configurations never drift apart
+- Dev-specific settings (like volume mounts, network modes) don't pollute the base configuration
+
+### Using Docker Compose Standalone
+
+For manual development (without devcontainer):
+
+```bash
+# Start infrastructure only
+docker compose up -d
+
+# Stop infrastructure
+docker compose down
+```
+
+### Dev Container Usage
+
+The devcontainer automatically loads both files in sequence:
+1. First, the base `docker-compose.yml` (infrastructure)
+2. Then, `.devcontainer/docker-compose.extend.yml` (dev overrides)
+
+All services share a network namespace via `network_mode: service:mongodb`, allowing them to communicate via `localhost`.
+
