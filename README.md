@@ -1,4 +1,4 @@
-# Glue
+# glue
 
 An opinionated integration engine for connecting services, transforming data, and orchestrating workflows.
 
