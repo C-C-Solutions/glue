@@ -26,7 +26,7 @@ glue/
 │   └── config/       # Shared configuration (Zod validation)
 ├── .devcontainer/
 │   ├── devcontainer.json           # Dev container configuration
-│   └── docker-compose.extend.yml   # Dev-specific compose overrides
+│   └── docker-compose.override.yml   # Dev-specific compose overrides
 └── docker-compose.yml  # Infrastructure services (MongoDB, Redis)
 ```
 
@@ -235,7 +235,7 @@ BullMQ worker processes jobs from Redis queue:
 This repository uses the **extension pattern** for docker-compose files to maintain a single source of truth:
 
 - **`docker-compose.yml`** (root): Defines infrastructure services (MongoDB, Redis) as they exist in production/staging
-- **`.devcontainer/docker-compose.extend.yml`**: Contains only dev-specific overrides (app service, dev volumes, shared network)
+- **`.devcontainer/docker-compose.override.yml`**: Contains only dev-specific overrides (app service, dev volumes, shared network)
 
 ### Why This Pattern?
 
@@ -261,7 +261,7 @@ docker compose down
 
 The devcontainer automatically loads both files in sequence:
 1. First, the base `docker-compose.yml` (infrastructure)
-2. Then, `.devcontainer/docker-compose.extend.yml` (dev overrides)
+2. Then, `.devcontainer/docker-compose.override.yml` (dev overrides)
 
 All services share a network namespace via `network_mode: service:mongodb`, allowing them to communicate via `localhost`.
 

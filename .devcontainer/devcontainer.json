@@ -2,11 +2,10 @@
   "name": "Glue Development",
   "dockerComposeFile": [
     "../docker-compose.yml",
-    "docker-compose.extend.yml"
+    "docker-compose.override.yml"
   ],
   "service": "app",
   "workspaceFolder": "/workspace",
-  
   "customizations": {
     "vscode": {
       "extensions": [
@@ -28,13 +27,15 @@
       }
     }
   },
-  
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  
-  "forwardPorts": [3000, 27017, 6379],
+  "forwardPorts": [
+    3000,
+    27017,
+    6379
+  ],
   "portsAttributes": {
     "3000": {
       "label": "API Server",
@@ -47,8 +48,6 @@
       "label": "Redis"
     }
   },
-  
   "postCreateCommand": "pnpm install",
-  
   "remoteUser": "node"
 }
