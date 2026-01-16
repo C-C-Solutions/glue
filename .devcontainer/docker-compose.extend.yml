@@ -1,5 +1,6 @@
 services:
   # Dev container service
+  # Uses network_mode: service:mongodb so all services share localhost
   app:
     image: mcr.microsoft.com/devcontainers/typescript-node:22
     volumes:
@@ -14,6 +15,7 @@ services:
       - PORT=3000
 
   # Override MongoDB for dev-specific settings
+  # Ports for Redis and API are forwarded here since they share the network namespace
   mongodb:
     restart: unless-stopped
     volumes:
@@ -23,6 +25,7 @@ services:
       - "3000:3000"  # Forward API port through MongoDB service
 
   # Override Redis for dev-specific settings
+  # Uses network_mode: service:mongodb to share network namespace
   redis:
     restart: unless-stopped
     volumes:
