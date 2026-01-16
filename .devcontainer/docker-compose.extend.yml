@@ -19,7 +19,6 @@ services:
     volumes:
       - mongodb-data-dev:/data/db  # Use dev-specific volume
     ports:
-      - "27017:27017"
       - "6379:6379"  # Forward Redis port through MongoDB service
       - "3000:3000"  # Forward API port through MongoDB service
 
