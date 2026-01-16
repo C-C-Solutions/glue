@@ -24,8 +24,10 @@ glue/
 │   ├── db/           # Database layer (MongoDB/Mongoose)
 │   ├── queue/        # Queue utilities (BullMQ/Redis)
 │   └── config/       # Shared configuration (Zod validation)
-└── docker/
-    └── docker-compose.yml  # Local dev infrastructure
+├── .devcontainer/
+│   ├── devcontainer.json           # Dev container configuration
+│   └── docker-compose.extend.yml   # Dev-specific compose overrides
+└── docker-compose.yml  # Infrastructure services (MongoDB, Redis)
 ```
 
 ## 🛠️ Tech Stack
@@ -97,7 +99,7 @@ cp .env.example .env
 
 4. Start infrastructure (MongoDB + Redis):
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose up -d
 ```
 
 5. Build all packages:

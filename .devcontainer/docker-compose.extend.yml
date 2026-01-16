@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # Dev container service
   app:
     image: mcr.microsoft.com/devcontainers/typescript-node:22
     volumes:
@@ -14,25 +13,23 @@ services:
       - LOG_LEVEL=info
       - PORT=3000
 
+  # Override MongoDB for dev-specific settings
   mongodb:
-    image: mongo:8
     restart: unless-stopped
     volumes:
-      - mongodb-data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=glue
+      - mongodb-data-dev:/data/db  # Use dev-specific volume
     ports:
       - "27017:27017"
-      - "6379:6379"
-      - "3000:3000"
+      - "6379:6379"  # Forward Redis port through MongoDB service
+      - "3000:3000"  # Forward API port through MongoDB service
 
+  # Override Redis for dev-specific settings
   redis:
-    image: redis:8.4-alpine
     restart: unless-stopped
     volumes:
-      - redis-data:/data
+      - redis-data-dev:/data  # Use dev-specific volume
     network_mode: service:mongodb
 
 volumes:
-  mongodb-data:
-  redis-data:
+  mongodb-data-dev:
+  redis-data-dev:
