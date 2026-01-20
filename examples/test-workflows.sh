@@ -204,10 +204,12 @@ interactive_mode() {
                 ;;
             3)
                 for i in {1..7}; do
-                    file="${EXAMPLE_DIR}/0${i}-"*.json
-                    if [ -f "$file" ]; then
-                        test_individual "$file"
+                    files=("${EXAMPLE_DIR}"/0${i}-*.json)
+                    if [ -f "${files[0]}" ]; then
+                        test_individual "${files[0]}"
                         sleep 2
+                    else
+                        print_warning "No file found matching pattern: 0${i}-*.json"
                     fi
                 done
                 ;;
@@ -215,7 +217,9 @@ interactive_mode() {
                 read -p "Enter userId (default: 1): " user_id
                 user_id=${user_id:-1}
                 read -p "Enter notification email: " email
-                input="{\"userId\": ${user_id}, \"notificationEmail\": \"${email}\"}"
+                # Escape special characters in email for JSON
+                email_escaped=$(echo "$email" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                input="{\"userId\": ${user_id}, \"notificationEmail\": \"${email_escaped}\"}"
                 test_individual "${EXAMPLE_DIR}/08-all-connectors-complete.json" "$input"
                 ;;
             5)
