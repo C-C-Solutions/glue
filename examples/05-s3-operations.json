@@ -1,0 +1,51 @@
+{
+  "id": "s3-operations-example",
+  "name": "S3 Operations Example",
+  "version": "1.0.0",
+  "description": "Example demonstrating S3 connector for object storage operations",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_data",
+      "name": "Fetch Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "save_to_s3",
+      "name": "Save Data to S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "${env.S3_BUCKET}",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": "${env.S3_ENDPOINT}"
+      },
+      "parameters": {
+        "action": "putObject",
+        "key": "data/post-${steps.fetch_data.data.id}.json",
+        "content": "${steps.fetch_data.data}",
+        "contentType": "application/json"
+      },
+      "dependsOn": ["fetch_data"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "s3", "storage"],
+    "notes": "This workflow demonstrates the S3 connector by fetching data and saving it to S3-compatible storage. Requires environment variables: S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY. Optional S3_ENDPOINT for LocalStack or MinIO."
+  }
+}

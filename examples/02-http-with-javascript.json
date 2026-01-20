@@ -1,0 +1,47 @@
+{
+  "id": "http-javascript-example",
+  "name": "HTTP with JavaScript Transform",
+  "version": "1.0.0",
+  "description": "Combines HTTP connector with JavaScript connector for data transformation",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_data",
+      "name": "Fetch Data from API",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/users/1",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "transform_data",
+      "name": "Transform with JavaScript",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return { fullName: user.name, email: user.email, username: user.username, company: user.company.name };",
+        "context": {
+          "user": "${steps.fetch_data.data}"
+        }
+      },
+      "dependsOn": ["fetch_data"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "http", "javascript", "transform"],
+    "notes": "This workflow demonstrates using HTTP and JavaScript connectors together. The HTTP connector fetches user data, and JavaScript transforms it into a simplified format."
+  }
+}

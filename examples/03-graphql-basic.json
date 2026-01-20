@@ -1,0 +1,37 @@
+{
+  "id": "graphql-basic-example",
+  "name": "Basic GraphQL Query Example",
+  "version": "1.0.0",
+  "description": "Example using GraphQL connector to query GitHub's public API",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "query_github",
+      "name": "Query GitHub GraphQL API",
+      "type": "connector",
+      "config": {
+        "connectorType": "graphql",
+        "endpoint": "https://api.github.com/graphql",
+        "headers": {
+          "Authorization": "Bearer ${env.GITHUB_TOKEN}"
+        },
+        "timeout": 30000
+      },
+      "parameters": {
+        "query": "query { viewer { login name bio } }",
+        "variables": {}
+      }
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "graphql", "github"],
+    "notes": "This workflow demonstrates the GraphQL connector using GitHub's API. Requires GITHUB_TOKEN environment variable with at least read:user scope."
+  }
+}

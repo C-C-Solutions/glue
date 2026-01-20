@@ -1,0 +1,147 @@
+{
+  "id": "all-connectors-example",
+  "name": "Complete Pipeline Using All 7 Connectors",
+  "version": "1.0.0",
+  "description": "Comprehensive example demonstrating all 7 connectors in a single workflow: HTTP, JavaScript, Postgres, S3, OpenAI, SMTP, and GraphQL",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_user_data",
+      "name": "Fetch User Data (HTTP)",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/users/${workflow.input.userId}",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "transform_user_data",
+      "name": "Transform Data (JavaScript)",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "const timestamp = Date.now(); return { userId: user.id, fullName: user.name, email: user.email, username: user.username, company: user.company.name, processedAt: new Date(timestamp).toISOString(), dataKey: `user-${user.id}-${timestamp}` };",
+        "context": {
+          "user": "${steps.fetch_user_data.data}"
+        }
+      },
+      "dependsOn": ["fetch_user_data"]
+    },
+    {
+      "id": "save_to_s3",
+      "name": "Save to S3 Storage (S3)",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "${env.S3_BUCKET}",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": "${env.S3_ENDPOINT}"
+      },
+      "parameters": {
+        "action": "putObject",
+        "key": "users/${steps.transform_user_data.data.dataKey}.json",
+        "content": "${steps.transform_user_data.data}",
+        "contentType": "application/json"
+      },
+      "dependsOn": ["transform_user_data"]
+    },
+    {
+      "id": "query_database",
+      "name": "Query User Activity (Postgres)",
+      "type": "connector",
+      "config": {
+        "connectorType": "postgres",
+        "host": "${env.DB_HOST}",
+        "port": 5432,
+        "database": "${env.DB_NAME}",
+        "user": "${env.DB_USER}",
+        "password": "${env.DB_PASSWORD}",
+        "ssl": false
+      },
+      "parameters": {
+        "query": "SELECT COUNT(*) as activity_count FROM user_activities WHERE user_id = $1",
+        "params": ["${steps.transform_user_data.data.userId}"]
+      },
+      "dependsOn": ["transform_user_data"]
+    },
+    {
+      "id": "generate_summary",
+      "name": "Generate AI Summary (OpenAI)",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o-mini",
+        "temperature": 0.7,
+        "maxTokens": 300
+      },
+      "parameters": {
+        "systemPrompt": "You are a helpful assistant that creates professional user profile summaries.",
+        "userPrompt": "Create a brief summary for this user profile: Name: ${steps.transform_user_data.data.fullName}, Company: ${steps.transform_user_data.data.company}, Email: ${steps.transform_user_data.data.email}. The data was saved to S3 with ETag: ${steps.save_to_s3.data.etag}"
+      },
+      "dependsOn": ["save_to_s3", "query_database"]
+    },
+    {
+      "id": "send_notification",
+      "name": "Send Email Report (SMTP)",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "${env.SMTP_HOST}",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "${env.SMTP_FROM}"
+      },
+      "parameters": {
+        "to": "${workflow.input.notificationEmail}",
+        "subject": "User Profile Processing Complete - ${steps.transform_user_data.data.fullName}",
+        "html": "<h2>Processing Complete</h2><p><strong>User:</strong> ${steps.transform_user_data.data.fullName}</p><p><strong>Email:</strong> ${steps.transform_user_data.data.email}</p><p><strong>Company:</strong> ${steps.transform_user_data.data.company}</p><p><strong>S3 Storage:</strong> Successfully saved</p><h3>AI Summary</h3><p>${steps.generate_summary.data.content}</p>"
+      },
+      "dependsOn": ["generate_summary"]
+    },
+    {
+      "id": "update_graphql",
+      "name": "Update Status (GraphQL)",
+      "type": "connector",
+      "config": {
+        "connectorType": "graphql",
+        "endpoint": "${env.GRAPHQL_ENDPOINT}",
+        "headers": {
+          "Authorization": "Bearer ${env.GRAPHQL_TOKEN}",
+          "Content-Type": "application/json"
+        },
+        "timeout": 30000
+      },
+      "parameters": {
+        "query": "mutation UpdateUserStatus($userId: String!, $status: String!) { updateUser(id: $userId, status: $status) { id status updatedAt } }",
+        "variables": {
+          "userId": "${steps.transform_user_data.data.userId}",
+          "status": "processed"
+        }
+      },
+      "dependsOn": ["send_notification"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "comprehensive", "all-connectors"],
+    "notes": "This workflow demonstrates all 7 connectors working together in a realistic data processing pipeline. It fetches user data, transforms it, stores in S3, queries a database, generates an AI summary, sends an email notification, and updates a GraphQL service. Required environment variables: S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_ENDPOINT (optional), DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, OPENAI_API_KEY, SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, GRAPHQL_ENDPOINT, GRAPHQL_TOKEN. Required workflow input: userId (number), notificationEmail (string)."
+  }
+}
