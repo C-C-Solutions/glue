@@ -1,6 +1,16 @@
 import { StepDefinition, StepExecution } from '../types';
-import { BaseConnector, HttpConnector } from '../connectors';
+import { 
+  BaseConnector, 
+  HttpConnector,
+  PostgresConnector,
+  OpenAIConnector,
+  SMTPConnector,
+  S3Connector,
+  JavaScriptConnector,
+  GraphQLConnector
+} from '../connectors';
 import { JsonTransformer } from '../transformers';
+import { ParameterResolver, ParameterContext } from './parameter-resolver';
 
 /**
  * Step runner - executes individual steps
@@ -8,13 +18,21 @@ import { JsonTransformer } from '../transformers';
 export class StepRunner {
   private connectors: Map<string, BaseConnector>;
   private transformer: JsonTransformer;
+  private parameterResolver: ParameterResolver;
   
   constructor() {
     this.connectors = new Map();
     this.transformer = new JsonTransformer();
+    this.parameterResolver = new ParameterResolver();
     
-    // Register built-in connectors
+    // Register all built-in connectors
     this.registerConnector(new HttpConnector());
+    this.registerConnector(new PostgresConnector());
+    this.registerConnector(new OpenAIConnector());
+    this.registerConnector(new SMTPConnector());
+    this.registerConnector(new S3Connector());
+    this.registerConnector(new JavaScriptConnector());
+    this.registerConnector(new GraphQLConnector());
   }
   
   /**
@@ -30,7 +48,8 @@ export class StepRunner {
   async executeStep(
     step: StepDefinition,
     input: Record<string, unknown>,
-    context: Record<string, unknown>
+    context: Record<string, unknown>,
+    parameterContext?: ParameterContext
   ): Promise<StepExecution> {
     const execution: StepExecution = {
       stepId: step.id,
@@ -41,19 +60,27 @@ export class StepRunner {
     };
     
     try {
+      // Resolve parameters if provided
+      let resolvedInput = input;
+      if (step.parameters && parameterContext) {
+        const resolvedParameters = this.parameterResolver.resolve(step.parameters, parameterContext);
+        // Merge resolved parameters with input (parameters take precedence)
+        resolvedInput = { ...input, ...resolvedParameters };
+      }
+      
       let output: Record<string, unknown>;
       
       switch (step.type) {
         case 'connector':
-          output = await this.executeConnector(step, input);
+          output = await this.executeConnector(step, resolvedInput);
           break;
           
         case 'transformer':
-          output = await this.executeTransformer(step, input);
+          output = await this.executeTransformer(step, resolvedInput);
           break;
           
         case 'condition':
-          output = await this.executeCondition(step, input, context);
+          output = await this.executeCondition(step, resolvedInput, context);
           break;
           
         default:
@@ -158,7 +185,8 @@ export class StepRunner {
   async executeWithRetry(
     step: StepDefinition,
     input: Record<string, unknown>,
-    context: Record<string, unknown>
+    context: Record<string, unknown>,
+    parameterContext?: ParameterContext
   ): Promise<StepExecution> {
     const maxAttempts = step.retryPolicy?.maxAttempts || 1;
     const delayMs = step.retryPolicy?.delayMs || 1000;
@@ -168,7 +196,7 @@ export class StepRunner {
     let currentDelay = delayMs;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      lastExecution = await this.executeStep(step, input, context);
+      lastExecution = await this.executeStep(step, input, context, parameterContext);
       lastExecution.attempts = attempt;
       
       if (lastExecution.status === 'completed') {

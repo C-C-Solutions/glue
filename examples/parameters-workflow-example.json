@@ -1,0 +1,111 @@
+{
+  "id": "workflow_003",
+  "name": "Parameters-Based Multi-Connector Pipeline",
+  "version": "1.0.0",
+  "description": "Example workflow using the new parameters field for explicit dependency references",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_post",
+      "name": "Fetch Post from API",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "method": "GET",
+        "timeout": 30000
+      },
+      "comment": "Fetches a post. Output: { data: { userId: 1, id: 1, title: '...', body: '...' } }"
+    },
+    {
+      "id": "transform_with_js",
+      "name": "Transform Data with JavaScript",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return { summary: `Post #${data.id}: ${data.title}`, content: data.body, author: data.userId };",
+        "context": {
+          "data": "${steps.fetch_post.data}"
+        }
+      },
+      "dependsOn": ["fetch_post"],
+      "comment": "Uses parameters to explicitly reference fetch_post output. No transformer step needed!"
+    },
+    {
+      "id": "save_to_s3",
+      "name": "Save to S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "workflow-data",
+        "accessKeyId": "test",
+        "secretAccessKey": "test",
+        "endpoint": "http://localhost:4566"
+      },
+      "parameters": {
+        "action": "putObject",
+        "key": "posts/${steps.transform_with_js.data.summary}.json",
+        "content": "${steps.transform_with_js.data}",
+        "contentType": "application/json"
+      },
+      "dependsOn": ["transform_with_js"],
+      "comment": "Parameters specify S3 action and reference transformed data"
+    },
+    {
+      "id": "generate_summary",
+      "name": "Generate AI Summary",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o",
+        "temperature": 0.7,
+        "maxTokens": 500
+      },
+      "parameters": {
+        "systemPrompt": "You are a helpful assistant that creates concise summaries.",
+        "userPrompt": "Create a brief summary for this post: ${steps.transform_with_js.data.summary}. Content: ${steps.transform_with_js.data.content}"
+      },
+      "dependsOn": ["transform_with_js"],
+      "comment": "Parameters contain static system prompt and dynamic user prompt referencing previous step"
+    },
+    {
+      "id": "send_email",
+      "name": "Send Email Notification",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "smtp.example.com",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "noreply@example.com"
+      },
+      "parameters": {
+        "to": "${workflow.input.recipientEmail}",
+        "subject": "Post Summary Ready",
+        "html": "<h2>Summary</h2><p>${steps.generate_summary.data.content}</p>"
+      },
+      "dependsOn": ["generate_summary"],
+      "comment": "Parameters reference workflow input for recipient and AI-generated content"
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 3
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "parameters", "explicit-dependencies"],
+    "notes": "This workflow demonstrates Option B: Runtime-configurable parameters with explicit variable interpolation. Benefits: 1) No transformer steps needed for simple data passing. 2) Dependencies are explicit and clear. 3) Config stays static (connection settings) while parameters are dynamic (data references). 4) Connectors remain decoupled - they don't need to know about other connectors."
+  }
+}

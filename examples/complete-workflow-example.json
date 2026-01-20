@@ -1,0 +1,221 @@
+{
+  "id": "workflow_002",
+  "name": "Complete Workflow Example with Step-Specific Data",
+  "version": "1.0.0",
+  "description": "Comprehensive example showing step-specific configuration embedded in each step",
+  "trigger": {
+    "type": "webhook",
+    "config": {
+      "path": "/webhook/process-data",
+      "method": "POST"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_user_data",
+      "name": "Fetch User Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://api.example.com/users/${input.userId}",
+        "method": "GET",
+        "headers": {
+          "Authorization": "Bearer ${env.API_TOKEN}",
+          "Content-Type": "application/json"
+        },
+        "timeout": 30000
+      },
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "delayMs": 1000,
+        "backoffMultiplier": 2
+      }
+    },
+    {
+      "id": "transform_user_data",
+      "name": "Transform and Enrich User Data",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "code": "return { fullName: `${data.firstName} ${data.lastName}`, email: data.email, accountAge: Date.now() - new Date(data.createdAt).getTime() };",
+          "context": {
+            "data": "${data}"
+          }
+        }
+      },
+      "dependsOn": ["fetch_user_data"],
+      "comment": "Prepares JavaScript input: { code: '...', context: { data: {...} } }"
+    },
+    {
+      "id": "execute_js_transform",
+      "name": "Execute JavaScript Transform",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "dependsOn": ["transform_user_data"],
+      "comment": "Executes JavaScript code from previous step to transform user data"
+    },
+    {
+      "id": "prepare_db_query",
+      "name": "Prepare Database Query Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "query": "SELECT * FROM user_activity WHERE user_id = $1 AND activity_date > $2",
+          "params": ["${data.userId}", "${data.startDate}"]
+        }
+      },
+      "dependsOn": ["execute_js_transform"],
+      "comment": "Prepares Postgres input: { query: '...', params: [...] }"
+    },
+    {
+      "id": "query_database",
+      "name": "Query Additional Data from Postgres",
+      "type": "connector",
+      "config": {
+        "connectorType": "postgres",
+        "host": "${env.DB_HOST}",
+        "port": 5432,
+        "database": "analytics",
+        "user": "${env.DB_USER}",
+        "password": "${env.DB_PASSWORD}",
+        "ssl": true
+      },
+      "dependsOn": ["prepare_db_query"],
+      "comment": "Executes database query prepared in previous step"
+    },
+    {
+      "id": "prepare_ai_input",
+      "name": "Prepare AI Report Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "systemPrompt": "You are a data analyst. Create a concise executive summary report based on user data and activity.",
+          "userPrompt": "Generate a report for user ${data.fullName} (${data.email}). Account age: ${data.accountAge} days. Recent activity: ${JSON.stringify(data.activities)}"
+        }
+      },
+      "dependsOn": ["query_database"],
+      "comment": "Prepares OpenAI input: { systemPrompt: '...', userPrompt: '...' } combining data from JS transform and DB query"
+    },
+    {
+      "id": "generate_report",
+      "name": "Generate Report with AI",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o",
+        "temperature": 0.5,
+        "maxTokens": 2000,
+        "timeout": 60000
+      },
+      "dependsOn": ["prepare_ai_input"],
+      "comment": "Generates AI report using prompts from previous step"
+    },
+    {
+      "id": "prepare_s3_input",
+      "name": "Prepare S3 Save Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "action": "putObject",
+          "key": "reports/${data.userId}/${Date.now()}.txt",
+          "content": "${data.content}",
+          "contentType": "text/plain"
+        }
+      },
+      "dependsOn": ["generate_report"],
+      "comment": "Prepares S3 input: { action: 'putObject', key: '...', content: '...', contentType: '...' }"
+    },
+    {
+      "id": "save_report_to_s3",
+      "name": "Save Report to S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "reports-bucket",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": null
+      },
+      "dependsOn": ["prepare_s3_input"],
+      "comment": "Saves report to S3 using input prepared in previous step"
+    },
+    {
+      "id": "prepare_email_input",
+      "name": "Prepare Email Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "to": "${data.userEmail}",
+          "subject": "Your Report is Ready",
+          "html": "<h2>Report Generated</h2><p>Your report has been saved to S3.</p><p>ETag: ${data.etag}</p>"
+        }
+      },
+      "dependsOn": ["save_report_to_s3"],
+      "comment": "Prepares SMTP input: { to: '...', subject: '...', html: '...' } using S3 upload results"
+    },
+    {
+      "id": "send_notification",
+      "name": "Send Email Notification",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "${env.SMTP_HOST}",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "reports@example.com"
+      },
+      "dependsOn": ["prepare_email_input"],
+      "comment": "Sends email notification using input from previous step"
+    },
+    {
+      "id": "prepare_graphql_input",
+      "name": "Prepare GraphQL Update Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "query": "mutation UpdateUserReport($userId: ID!, $reportId: String!) { updateUserReport(userId: $userId, reportId: $reportId, status: COMPLETED) { success } }",
+          "variables": {
+            "userId": "${data.userId}",
+            "reportId": "${data.reportId}"
+          }
+        }
+      },
+      "dependsOn": ["send_notification"],
+      "comment": "Prepares GraphQL input: { query: '...', variables: {...} }"
+    },
+    {
+      "id": "query_graphql",
+      "name": "Update GraphQL Service",
+      "type": "connector",
+      "config": {
+        "connectorType": "graphql",
+        "endpoint": "${env.GRAPHQL_ENDPOINT}",
+        "headers": {
+          "Authorization": "Bearer ${env.GRAPHQL_TOKEN}"
+        }
+      },
+      "dependsOn": ["prepare_graphql_input"],
+      "comment": "Executes GraphQL mutation using query and variables from previous step"
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "version": "1.0.0",
+    "created": "2024-01-20",
+    "tags": ["example", "complete", "all-connectors"],
+    "description": "This workflow demonstrates all 7 available connectors with step-specific configurations. Note: Connectors expect input data (code, prompts, queries) to come from previous steps' outputs, while config contains connection settings (API keys, endpoints, etc.). Transformer steps are used to prepare the correct input format for each connector."
+  }
+}

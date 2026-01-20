@@ -154,38 +154,62 @@ pnpm dev
 
 ### Example: Create and Execute a Workflow
 
+The new **parameters-based approach** makes dependencies explicit and eliminates unnecessary transformer steps:
+
 ```bash
-# Create a workflow
+# Create a workflow with parameters
 curl -X POST http://localhost:3000/workflows \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "hello-world",
-    "name": "Hello World Workflow",
+    "id": "data-pipeline",
+    "name": "Data Processing Pipeline",
     "version": "1.0.0",
     "trigger": {
       "type": "manual"
     },
     "steps": [
       {
-        "id": "step1",
-        "name": "HTTP Request",
+        "id": "fetch_data",
+        "name": "Fetch User Data",
         "type": "connector",
         "config": {
+          "connectorType": "http",
           "url": "https://api.github.com/users/octocat",
           "method": "GET"
         }
+      },
+      {
+        "id": "transform",
+        "name": "Transform with JavaScript",
+        "type": "connector",
+        "config": {
+          "connectorType": "javascript",
+          "timeout": 5000
+        },
+        "parameters": {
+          "code": "return { name: user.name, repos: user.public_repos };",
+          "context": { "user": "${steps.fetch_data.data}" }
+        },
+        "dependsOn": ["fetch_data"]
       }
     ]
   }'
 
 # Execute the workflow
-curl -X POST http://localhost:3000/workflows/hello-world/execute \
+curl -X POST http://localhost:3000/workflows/data-pipeline/execute \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"recipientEmail": "user@example.com"}'
 
 # Check execution status
 curl http://localhost:3000/executions/{execution-id}
 ```
+
+**Key Features:**
+- `parameters` field with explicit variable interpolation
+- `${steps.stepId.field}` references previous step outputs
+- `${workflow.input.field}` references workflow inputs
+- `${env.VAR_NAME}` references environment variables
+- No transformer steps needed for simple data passing
 
 ## 🧪 Testing
 
@@ -218,7 +242,51 @@ Workflows are defined as JSON objects with:
 - **Metadata**: ID, name, version, description
 - **Trigger**: How the workflow starts (manual, webhook, schedule, event)
 - **Steps**: Array of step definitions (connectors, transformers, conditions)
+- **Parameters** (NEW): Runtime-configurable parameters with variable interpolation
 - **Error Handling**: Retry policies and error strategies
+
+#### Parameters-Based Configuration (Recommended)
+
+Use the `parameters` field for explicit, maintainable workflows:
+
+```json
+{
+  "id": "step1",
+  "name": "Process Data",
+  "type": "connector",
+  "config": {
+    "connectorType": "openai",
+    "apiKey": "${env.OPENAI_API_KEY}",
+    "model": "gpt-4o"
+  },
+  "parameters": {
+    "systemPrompt": "You are a helpful assistant",
+    "userPrompt": "Summarize: ${steps.fetch_data.data.content}"
+  },
+  "dependsOn": ["fetch_data"]
+}
+```
+
+**Variable Interpolation:**
+- `${workflow.input.field}` - Reference workflow input
+- `${steps.stepId.field}` - Reference specific step output
+- `${env.VAR_NAME}` - Reference environment variable
+
+**Benefits:**
+- Explicit dependencies (clear data flow)
+- No transformer steps for simple data passing
+- Connectors remain decoupled
+- Easy to maintain and understand
+
+### Example Workflows
+
+See the [`examples/`](./examples) directory for complete workflow examples:
+
+- **`parameters-workflow-example.json`** ⭐ **Recommended** - Clean 5-step pipeline using parameters
+- **`multi-connector-workflow.json`** - Legacy transformer-based approach (9 steps)
+- **`complete-workflow-example.json`** - All 7 connectors with transformer steps
+
+Each example includes detailed comments explaining data flow and connector usage.
 
 ### Execution Engine
 
