@@ -2,6 +2,7 @@ import { WorkflowDefinition } from "@glue/core";
 import { ExecutionRepository, WorkflowRepository } from "@glue/db";
 import { WorkflowQueue } from "@glue/queue";
 import { FastifyPluginAsync } from "fastify";
+import { TriggerManager } from "../triggers";
 
 /**
  * Workflow routes
@@ -13,6 +14,11 @@ const workflowRoutes: FastifyPluginAsync = async (fastify) => {
   // Get workflow queue from app context
   const getWorkflowQueue = (): WorkflowQueue => {
     return (fastify as any).workflowQueue;
+  };
+
+  // Get trigger manager from app context
+  const getTriggerManager = (): TriggerManager => {
+    return (fastify as any).triggerManager;
   };
 
   /**
@@ -30,6 +36,15 @@ const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const created = await workflowRepo.create(workflow);
+      
+      // Register workflow with trigger manager
+      try {
+        const triggerManager = getTriggerManager();
+        await triggerManager.registerWorkflow(created);
+      } catch (error) {
+        fastify.log.warn(`Failed to register workflow trigger: ${error}`);
+      }
+      
       return reply.code(201).send(created);
     } catch (error) {
       fastify.log.error(error);

@@ -100,4 +100,56 @@ export class WorkflowQueue {
   getQueue(): Queue<WorkflowJobData> {
     return this.queue;
   }
+  
+  /**
+   * Add repeatable job for scheduled workflows
+   */
+  async addRepeatableJob(
+    workflowId: string,
+    cron: string,
+    timezone: string = 'UTC'
+  ): Promise<string> {
+    const job = await this.queue.add(
+      'execute-workflow-scheduled',
+      {
+        type: 'execute',
+        workflowId,
+        input: {
+          trigger: 'schedule',
+          scheduledAt: new Date().toISOString(),
+        },
+      } as ExecuteWorkflowJob,
+      {
+        repeat: {
+          pattern: cron,
+          tz: timezone,
+        },
+      }
+    );
+
+    return job.id!;
+  }
+
+  /**
+   * Remove repeatable job
+   */
+  async removeRepeatableJob(workflowId: string, cron: string, timezone: string = 'UTC'): Promise<boolean> {
+    try {
+      await this.queue.removeRepeatable('execute-workflow-scheduled', {
+        pattern: cron,
+        tz: timezone,
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to remove repeatable job for workflow ${workflowId}:`, error);
+      return false;
+    }
+  }
+  
+  /**
+   * Get all repeatable jobs
+   */
+  async getRepeatableJobs() {
+    return this.queue.getRepeatableJobs();
+  }
 }
