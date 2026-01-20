@@ -18,68 +18,65 @@ The following connectors are available and can be used in any combination:
 6. **SMTP** - Send emails via SMTP
 7. **GraphQL** - Query GraphQL APIs
 
-## Step-Specific Configuration
+## Two Approaches to Step Configuration
 
-### Understanding Config vs Input
+Glue supports two approaches for configuring steps:
 
-**Important:** Connectors distinguish between **configuration** (in the `config` field) and **input data** (from previous steps):
+### Approach 1: Transformer-Based (Legacy)
 
-- **Config**: Contains connection settings, credentials, and connector-specific options that don't change between executions
-  - Examples: API keys, host addresses, timeout values, model names
-  - Defined in the workflow definition itself
+Uses transformer steps to prepare input for connectors. Data flows implicitly from step to step.
 
-- **Input**: Contains the actual data to process, which comes from previous steps' outputs
-  - Examples: JavaScript code to execute, OpenAI prompts, database queries, file content
-  - Flows from one step to the next
+### Approach 2: Parameters-Based (Recommended)
 
-#### Example: JavaScript Connector
+Uses the `parameters` field with explicit variable interpolation. **This is the recommended approach** for most workflows.
+
+## Parameters-Based Configuration
+
+The `parameters` field allows you to explicitly reference workflow inputs, previous step outputs, and environment variables using variable interpolation syntax.
+
+### Variable Interpolation Syntax
+
+- `${workflow.input.fieldName}` - Reference workflow input
+- `${steps.stepId.fieldName}` - Reference output from a specific step
+- `${env.VAR_NAME}` - Reference environment variable
+
+### Benefits
+
+1. **Explicit Dependencies**: Clear what data each step needs
+2. **No Extra Steps**: No transformer steps needed for simple data passing
+3. **Decoupled Connectors**: Connectors don't need to know about other connectors
+4. **Maintainable**: Easy to understand data flow at a glance
+
+### Example: JavaScript Connector with Parameters
 
 ```json
 {
-  "id": "prepare_js_input",
-  "name": "Prepare JavaScript Input",
-  "type": "transformer",
-  "config": {
-    "mapping": {
-      "code": "return { transformed: data.value * 2 };",
-      "context": { "data": "${previousStepOutput}" }
-    }
-  }
-},
-{
-  "id": "execute_js",
-  "name": "Execute JavaScript",
+  "id": "transform_data",
+  "name": "Transform Data",
   "type": "connector",
   "config": {
     "connectorType": "javascript",
     "timeout": 5000
   },
-  "dependsOn": ["prepare_js_input"]
+  "parameters": {
+    "code": "return { doubled: value * 2 };",
+    "context": { "value": "${steps.fetch_data.data.number}" }
+  },
+  "dependsOn": ["fetch_data"]
 }
 ```
 
-In this example:
-- The **transformer step** prepares the input with the JavaScript `code` and `context`
-- The **JavaScript connector** receives this as input and executes it
-- The connector's `config` only contains the timeout setting
+**Key Points:**
+- `config` contains connector settings (timeout)
+- `parameters` contains the data to process with explicit references
+- Dependencies are clear: references `${steps.fetch_data.data.number}`
 
-#### Example: OpenAI Connector
+### Example: OpenAI Connector with Parameters
 
 ```json
 {
-  "id": "prepare_openai_input",
-  "name": "Prepare AI Input",
-  "type": "transformer",
-  "config": {
-    "mapping": {
-      "systemPrompt": "You are a helpful assistant",
-      "userPrompt": "Summarize this: ${data}"
-    }
-  }
-},
-{
   "id": "generate_summary",
-  "name": "Generate Summary",
+  "name": "Generate AI Summary",
   "type": "connector",
   "config": {
     "connectorType": "openai",
@@ -87,14 +84,18 @@ In this example:
     "model": "gpt-4o",
     "temperature": 0.7
   },
-  "dependsOn": ["prepare_openai_input"]
+  "parameters": {
+    "systemPrompt": "You are a helpful assistant",
+    "userPrompt": "Summarize this: ${steps.fetch_post.data.content}"
+  },
+  "dependsOn": ["fetch_post"]
 }
 ```
 
-In this example:
-- The **transformer step** prepares the prompts from previous step data
-- The **OpenAI connector** receives the prompts as input
-- The connector's `config` contains API key, model, and temperature settings
+**Key Points:**
+- `config` contains API key and model settings
+- `parameters` contains prompts with explicit data references
+- Static values (systemPrompt) and dynamic values (userPrompt) both in parameters
 
 Each step in a workflow embeds its own connector-specific configuration. The configuration is passed directly to the connector for execution:
 
@@ -119,9 +120,24 @@ Each step in a workflow embeds its own connector-specific configuration. The con
 
 ## Examples
 
-### 1. Multi-Connector Data Pipeline (`multi-connector-workflow.json`)
+### 1. Parameters-Based Workflow (`parameters-workflow-example.json`) ⭐ **Recommended**
 
-A complete example demonstrating a data pipeline that:
+A clean example using the **parameters field** for explicit data flow:
+1. Fetches data from HTTP API
+2. Transforms with JavaScript using `parameters` to reference step 1 output
+3. Saves to S3 using `parameters` to specify action and reference transformed data
+4. Generates AI summary using `parameters` with explicit prompts
+5. Sends email using `parameters` to reference workflow input and AI output
+
+**Key Benefits:**
+- Only 5 steps (no transformer steps needed!)
+- Dependencies are explicit and clear
+- Easy to understand data flow
+- Parameters show exactly what data each connector uses
+
+### 2. Multi-Connector Data Pipeline (`multi-connector-workflow.json`)
+
+A complete example using the **transformer-based approach**:
 1. Fetches data from an HTTP API
 2. Prepares JavaScript code input with a transformer
 3. Transforms data with JavaScript
@@ -132,11 +148,11 @@ A complete example demonstrating a data pipeline that:
 8. Prepares email content with a transformer
 9. Sends an email via SMTP
 
-**Key Learning:** This example shows how transformer steps prepare the input format expected by each connector. The JavaScript code, OpenAI prompts, S3 action details, and email content are all prepared by transformer steps that come immediately before the connector steps.
+**Key Learning:** This example shows the legacy approach where transformer steps prepare input for connectors. While functional, it requires more steps and implicit data flow.
 
-### 2. Complete Workflow Example (`complete-workflow-example.json`)
+### 3. Complete Workflow Example (`complete-workflow-example.json`)
 
-A comprehensive example that uses all 7 available connectors:
+A comprehensive example that uses all 7 available connectors with the transformer approach:
 1. **HTTP** - Fetches user data from an API
 2. **JavaScript** - Transforms and enriches the data
 3. **Postgres** - Queries additional data from a database

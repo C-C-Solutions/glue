@@ -1,5 +1,6 @@
 import { WorkflowDefinition, WorkflowExecution } from '../types';
 import { StepRunner } from './step-runner';
+import { ParameterResolver } from './parameter-resolver';
 
 /**
  * Event emitter interface for workflow execution events
@@ -53,8 +54,11 @@ export class WorkflowExecutor {
         // Get input for this step (output from previous step or workflow input)
         const stepInput = this.getStepInput(execution, step, input);
         
+        // Build parameter context for variable resolution
+        const parameterContext = ParameterResolver.buildContext(input, execution);
+        
         // Execute step with retry policy
-        const stepExecution = await this.stepRunner.executeWithRetry(step, stepInput, context);
+        const stepExecution = await this.stepRunner.executeWithRetry(step, stepInput, context, parameterContext);
         execution.stepExecutions.push(stepExecution);
         
         this.emitEvent('step.completed', { executionId: execution.id, stepExecution });

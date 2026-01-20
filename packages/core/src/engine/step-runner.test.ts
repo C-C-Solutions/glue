@@ -274,4 +274,87 @@ describe('StepRunner', () => {
       expect(step.config).toHaveProperty('auth');
     });
   });
+
+  describe('Parameters with Variable Interpolation', () => {
+    it('should support parameters with workflow input references', async () => {
+      const step: StepDefinition = {
+        id: 'js_with_params',
+        name: 'JavaScript with Parameters',
+        type: 'connector',
+        config: {
+          connectorType: 'javascript',
+          timeout: 5000,
+        },
+        parameters: {
+          code: 'return { greeting: "Hello " + name };',
+          context: { name: '${workflow.input.userName}' },
+        },
+      };
+
+      const parameterContext = {
+        workflowInput: { userName: 'Alice' },
+        stepExecutions: new Map(),
+        env: {},
+      };
+
+      const result = await runner.executeStep(step, {}, {}, parameterContext);
+
+      expect(result.status).toBe('completed');
+      expect(result.output?.data).toEqual({ greeting: 'Hello Alice' });
+    });
+
+    it('should support parameters with step output references', async () => {
+      const step: StepDefinition = {
+        id: 'js_with_step_ref',
+        name: 'JavaScript with Step Reference',
+        type: 'connector',
+        config: {
+          connectorType: 'javascript',
+          timeout: 5000,
+        },
+        parameters: {
+          code: 'return { doubled: value * 2 };',
+          context: { value: '${steps.previous.data.number}' },
+        },
+      };
+
+      const parameterContext = {
+        workflowInput: {},
+        stepExecutions: new Map([['previous', { data: { number: 21 } }]]),
+        env: {},
+      };
+
+      const result = await runner.executeStep(step, {}, {}, parameterContext);
+
+      expect(result.status).toBe('completed');
+      expect(result.output?.data).toEqual({ doubled: 42 });
+    });
+
+    it('should merge parameters with input data', async () => {
+      const step: StepDefinition = {
+        id: 'js_merge',
+        name: 'JavaScript with Merged Data',
+        type: 'connector',
+        config: {
+          connectorType: 'javascript',
+          timeout: 5000,
+        },
+        parameters: {
+          code: 'return { message: "User " + userName + " has count " + count };',
+          context: { userName: '${workflow.input.name}', count: 5 },
+        },
+      };
+
+      const parameterContext = {
+        workflowInput: { name: 'Bob' },
+        stepExecutions: new Map(),
+        env: {},
+      };
+
+      const result = await runner.executeStep(step, {}, {}, parameterContext);
+
+      expect(result.status).toBe('completed');
+      expect(result.output?.data).toEqual({ message: 'User Bob has count 5' });
+    });
+  });
 });

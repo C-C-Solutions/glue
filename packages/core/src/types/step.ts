@@ -65,6 +65,14 @@ export interface StepDefinition {
   name: string;
   type: 'connector' | 'transformer' | 'condition' | 'parallel';
   config: StepConfig;
+  /**
+   * Runtime-configurable parameters that can reference workflow inputs or previous step outputs
+   * Supports variable interpolation:
+   * - ${workflow.input.fieldName} - Reference workflow input
+   * - ${steps.stepId.fieldName} - Reference output from a specific step
+   * - ${env.VAR_NAME} - Reference environment variable
+   */
+  parameters?: Record<string, unknown>;
   retryPolicy?: RetryPolicy;
   timeout?: number;
   dependsOn?: string[];
