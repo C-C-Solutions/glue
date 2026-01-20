@@ -16,20 +16,52 @@
         "url": "https://jsonplaceholder.typicode.com/posts/1",
         "method": "GET",
         "timeout": 30000
-      }
+      },
+      "comment": "Fetches a post from JSONPlaceholder API. Output: { data: { userId: 1, id: 1, title: '...', body: '...' } }"
     },
     {
-      "id": "step_002_js_transform",
+      "id": "step_002_prepare_js_input",
+      "name": "Prepare JavaScript Transform Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "code": "return { summary: `Post #${data.id}: ${data.title}`, content: data.body, author: data.userId };",
+          "context": {
+            "data": "${data}"
+          }
+        }
+      },
+      "dependsOn": ["step_001_http_fetch"],
+      "comment": "Creates input for JavaScript connector with code and context from previous step's data"
+    },
+    {
+      "id": "step_003_js_transform",
       "name": "Transform Data with JavaScript",
       "type": "connector",
       "config": {
         "connectorType": "javascript",
         "timeout": 5000
       },
-      "dependsOn": ["step_001_http_fetch"]
+      "dependsOn": ["step_002_prepare_js_input"],
+      "comment": "Executes JavaScript code from previous step. Input from step_002: { code: '...', context: { data: {...} } }"
     },
     {
-      "id": "step_003_s3_save",
+      "id": "step_004_prepare_s3_input",
+      "name": "Prepare S3 Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "action": "putObject",
+          "key": "posts/${data.summary}.json",
+          "content": "${JSON.stringify(data)}",
+          "contentType": "application/json"
+        }
+      },
+      "dependsOn": ["step_003_js_transform"],
+      "comment": "Prepares S3 input with action, key, and content from JavaScript output"
+    },
+    {
+      "id": "step_005_s3_save",
       "name": "Save to S3 (LocalStack)",
       "type": "connector",
       "config": {
@@ -40,10 +72,24 @@
         "secretAccessKey": "test",
         "endpoint": "http://localhost:4566"
       },
-      "dependsOn": ["step_002_js_transform"]
+      "dependsOn": ["step_004_prepare_s3_input"],
+      "comment": "Saves transformed data to S3. Input from step_004: { action: 'putObject', key: '...', content: '...', contentType: 'application/json' }"
     },
     {
-      "id": "step_004_openai_summary",
+      "id": "step_006_prepare_openai_input",
+      "name": "Prepare OpenAI Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "systemPrompt": "You are a helpful assistant that creates concise email summaries.",
+          "userPrompt": "Create a brief email summary for this post: ${data.summary}. Content: ${data.content}"
+        }
+      },
+      "dependsOn": ["step_003_js_transform"],
+      "comment": "Prepares OpenAI input with system prompt and user prompt from transformed data"
+    },
+    {
+      "id": "step_007_openai_summary",
       "name": "Generate Summary with OpenAI",
       "type": "connector",
       "config": {
@@ -53,10 +99,25 @@
         "temperature": 0.7,
         "maxTokens": 500
       },
-      "dependsOn": ["step_002_js_transform"]
+      "dependsOn": ["step_006_prepare_openai_input"],
+      "comment": "Generates AI summary. Input from step_006: { systemPrompt: '...', userPrompt: '...' }. Output: { data: { content: '...', finishReason: '...', usage: {...} } }"
     },
     {
-      "id": "step_005_smtp_notify",
+      "id": "step_008_prepare_email_input",
+      "name": "Prepare Email Input",
+      "type": "transformer",
+      "config": {
+        "mapping": {
+          "to": "user@example.com",
+          "subject": "Post Summary Ready",
+          "html": "<h2>Summary</h2><p>${data.content}</p>"
+        }
+      },
+      "dependsOn": ["step_007_openai_summary"],
+      "comment": "Prepares email input with recipient, subject, and HTML content from OpenAI output"
+    },
+    {
+      "id": "step_009_smtp_notify",
       "name": "Send Email Summary",
       "type": "connector",
       "config": {
@@ -70,7 +131,8 @@
         },
         "from": "noreply@example.com"
       },
-      "dependsOn": ["step_004_openai_summary"]
+      "dependsOn": ["step_008_prepare_email_input"],
+      "comment": "Sends email notification. Input from step_008: { to: '...', subject: '...', html: '...' }"
     }
   ],
   "errorHandling": {
@@ -80,6 +142,6 @@
   "metadata": {
     "author": "glue-team",
     "tags": ["example", "multi-connector", "data-pipeline"],
-    "notes": "This workflow demonstrates the ability to chain any number of connectors in any combination. Each step's output becomes input for the next step."
+    "notes": "This workflow demonstrates how connectors receive their input data. Config contains connector settings (API keys, hosts, etc.) while input contains the data to process (code, prompts, content). Transformer steps prepare the input format expected by each connector."
   }
 }

@@ -20,6 +20,82 @@ The following connectors are available and can be used in any combination:
 
 ## Step-Specific Configuration
 
+### Understanding Config vs Input
+
+**Important:** Connectors distinguish between **configuration** (in the `config` field) and **input data** (from previous steps):
+
+- **Config**: Contains connection settings, credentials, and connector-specific options that don't change between executions
+  - Examples: API keys, host addresses, timeout values, model names
+  - Defined in the workflow definition itself
+
+- **Input**: Contains the actual data to process, which comes from previous steps' outputs
+  - Examples: JavaScript code to execute, OpenAI prompts, database queries, file content
+  - Flows from one step to the next
+
+#### Example: JavaScript Connector
+
+```json
+{
+  "id": "prepare_js_input",
+  "name": "Prepare JavaScript Input",
+  "type": "transformer",
+  "config": {
+    "mapping": {
+      "code": "return { transformed: data.value * 2 };",
+      "context": { "data": "${previousStepOutput}" }
+    }
+  }
+},
+{
+  "id": "execute_js",
+  "name": "Execute JavaScript",
+  "type": "connector",
+  "config": {
+    "connectorType": "javascript",
+    "timeout": 5000
+  },
+  "dependsOn": ["prepare_js_input"]
+}
+```
+
+In this example:
+- The **transformer step** prepares the input with the JavaScript `code` and `context`
+- The **JavaScript connector** receives this as input and executes it
+- The connector's `config` only contains the timeout setting
+
+#### Example: OpenAI Connector
+
+```json
+{
+  "id": "prepare_openai_input",
+  "name": "Prepare AI Input",
+  "type": "transformer",
+  "config": {
+    "mapping": {
+      "systemPrompt": "You are a helpful assistant",
+      "userPrompt": "Summarize this: ${data}"
+    }
+  }
+},
+{
+  "id": "generate_summary",
+  "name": "Generate Summary",
+  "type": "connector",
+  "config": {
+    "connectorType": "openai",
+    "apiKey": "${env.OPENAI_API_KEY}",
+    "model": "gpt-4o",
+    "temperature": 0.7
+  },
+  "dependsOn": ["prepare_openai_input"]
+}
+```
+
+In this example:
+- The **transformer step** prepares the prompts from previous step data
+- The **OpenAI connector** receives the prompts as input
+- The connector's `config` contains API key, model, and temperature settings
+
 Each step in a workflow embeds its own connector-specific configuration. The configuration is passed directly to the connector for execution:
 
 ```json
@@ -45,14 +121,18 @@ Each step in a workflow embeds its own connector-specific configuration. The con
 
 ### 1. Multi-Connector Data Pipeline (`multi-connector-workflow.json`)
 
-A simple example demonstrating a data pipeline that:
+A complete example demonstrating a data pipeline that:
 1. Fetches data from an HTTP API
-2. Transforms it with JavaScript
-3. Saves to S3 (LocalStack)
-4. Generates a summary with OpenAI
-5. Sends an email via SMTP
+2. Prepares JavaScript code input with a transformer
+3. Transforms data with JavaScript
+4. Prepares S3 input with a transformer  
+5. Saves to S3 (LocalStack)
+6. Prepares OpenAI prompts with a transformer
+7. Generates an AI summary with OpenAI
+8. Prepares email content with a transformer
+9. Sends an email via SMTP
 
-This example shows how outputs flow from one step to the next.
+**Key Learning:** This example shows how transformer steps prepare the input format expected by each connector. The JavaScript code, OpenAI prompts, S3 action details, and email content are all prepared by transformer steps that come immediately before the connector steps.
 
 ### 2. Complete Workflow Example (`complete-workflow-example.json`)
 
