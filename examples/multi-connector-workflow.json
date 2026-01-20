@@ -1,0 +1,85 @@
+{
+  "id": "workflow_001",
+  "name": "Multi-Connector Data Pipeline",
+  "version": "1.0.0",
+  "description": "Example workflow demonstrating multiple connectors: HTTP -> JavaScript -> S3 -> OpenAI -> SMTP",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "step_001_http_fetch",
+      "name": "Fetch Data from API",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "step_002_js_transform",
+      "name": "Transform Data with JavaScript",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "dependsOn": ["step_001_http_fetch"]
+    },
+    {
+      "id": "step_003_s3_save",
+      "name": "Save to S3 (LocalStack)",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "workflow-data",
+        "accessKeyId": "test",
+        "secretAccessKey": "test",
+        "endpoint": "http://localhost:4566"
+      },
+      "dependsOn": ["step_002_js_transform"]
+    },
+    {
+      "id": "step_004_openai_summary",
+      "name": "Generate Summary with OpenAI",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o",
+        "temperature": 0.7,
+        "maxTokens": 500
+      },
+      "dependsOn": ["step_002_js_transform"]
+    },
+    {
+      "id": "step_005_smtp_notify",
+      "name": "Send Email Summary",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "smtp.example.com",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "noreply@example.com"
+      },
+      "dependsOn": ["step_004_openai_summary"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 3
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "multi-connector", "data-pipeline"],
+    "notes": "This workflow demonstrates the ability to chain any number of connectors in any combination. Each step's output becomes input for the next step."
+  }
+}

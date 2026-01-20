@@ -1,0 +1,135 @@
+{
+  "id": "workflow_002",
+  "name": "Complete Workflow Example with Step-Specific Data",
+  "version": "1.0.0",
+  "description": "Comprehensive example showing step-specific configuration embedded in each step",
+  "trigger": {
+    "type": "webhook",
+    "config": {
+      "path": "/webhook/process-data",
+      "method": "POST"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_user_data",
+      "name": "Fetch User Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://api.example.com/users/${input.userId}",
+        "method": "GET",
+        "headers": {
+          "Authorization": "Bearer ${env.API_TOKEN}",
+          "Content-Type": "application/json"
+        },
+        "timeout": 30000
+      },
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "delayMs": 1000,
+        "backoffMultiplier": 2
+      }
+    },
+    {
+      "id": "transform_user_data",
+      "name": "Transform and Enrich User Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "dependsOn": ["fetch_user_data"],
+      "comment": "Input will contain: { code: string, context: Record<string, any> }"
+    },
+    {
+      "id": "query_database",
+      "name": "Query Additional Data from Postgres",
+      "type": "connector",
+      "config": {
+        "connectorType": "postgres",
+        "host": "${env.DB_HOST}",
+        "port": 5432,
+        "database": "analytics",
+        "user": "${env.DB_USER}",
+        "password": "${env.DB_PASSWORD}",
+        "ssl": true
+      },
+      "dependsOn": ["transform_user_data"],
+      "comment": "Input will contain: { query: string, params: any[] }"
+    },
+    {
+      "id": "generate_report",
+      "name": "Generate Report with AI",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o",
+        "temperature": 0.5,
+        "maxTokens": 2000,
+        "timeout": 60000
+      },
+      "dependsOn": ["query_database"],
+      "comment": "Input will contain: { systemPrompt?: string, userPrompt: string }"
+    },
+    {
+      "id": "save_report_to_s3",
+      "name": "Save Report to S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "us-east-1",
+        "bucket": "reports-bucket",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": null
+      },
+      "dependsOn": ["generate_report"],
+      "comment": "Input will contain: { action: 'putObject', key: string, content: string, contentType?: string }"
+    },
+    {
+      "id": "send_notification",
+      "name": "Send Email Notification",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "${env.SMTP_HOST}",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "reports@example.com"
+      },
+      "dependsOn": ["save_report_to_s3"],
+      "comment": "Input will contain: { to: string|string[], subject: string, text?: string, html?: string }"
+    },
+    {
+      "id": "query_graphql",
+      "name": "Update GraphQL Service",
+      "type": "connector",
+      "config": {
+        "connectorType": "graphql",
+        "endpoint": "${env.GRAPHQL_ENDPOINT}",
+        "headers": {
+          "Authorization": "Bearer ${env.GRAPHQL_TOKEN}"
+        }
+      },
+      "dependsOn": ["send_notification"],
+      "comment": "Input will contain: { query: string, variables?: Record<string, any> }"
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "version": "1.0.0",
+    "created": "2024-01-20",
+    "tags": ["example", "complete", "all-connectors"],
+    "description": "This workflow demonstrates all 7 available connectors with their step-specific configurations embedded in each step definition."
+  }
+}
