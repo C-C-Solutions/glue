@@ -46,3 +46,6 @@ coverage
 tmp
 temp
 *.tmp
+
+**/dist/
+**/node_modules/
