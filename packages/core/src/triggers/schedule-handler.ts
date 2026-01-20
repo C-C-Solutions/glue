@@ -141,16 +141,19 @@ export class ScheduleHandler implements TriggerHandler {
     // Basic validation - each part should be valid cron syntax
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      // Allow * and numbers with ranges and steps
+      // Allow *, numbers with ranges, steps, and named values (like MON, JAN)
       if (
-        part !== '*' &&
-        !/^[0-9\-\/,]+$/.test(part) &&
-        !/^[A-Z]{3}(-[A-Z]{3})?(,[A-Z]{3}(-[A-Z]{3})?)*$/i.test(part)
+        part === '*' ||
+        /^\*\/[0-9]+$/.test(part) || // Step values like */15
+        /^[0-9\-\/,]+$/.test(part) || // Numbers with ranges and steps
+        /^[A-Z]{3}(-[A-Z]{3})?(,[A-Z]{3}(-[A-Z]{3})?)*$/i.test(part) // Named values
       ) {
-        throw new Error(
-          `Invalid cron expression part: ${part} at position ${i + 1}`
-        );
+        continue;
       }
+      
+      throw new Error(
+        `Invalid cron expression part: ${part} at position ${i + 1}`
+      );
     }
   }
 

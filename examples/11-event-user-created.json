@@ -1,0 +1,53 @@
+{
+  "id": "event-user-created",
+  "name": "User Created Event Handler",
+  "version": "1.0.0",
+  "description": "Example workflow triggered when a user.created event occurs",
+  "trigger": {
+    "type": "event",
+    "config": {
+      "eventType": "user.created",
+      "source": "auth-service"
+    }
+  },
+  "steps": [
+    {
+      "id": "extract_user_data",
+      "name": "Extract User Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "return { userId: user.id, email: user.email, name: user.name, createdAt: user.createdAt };",
+        "context": {
+          "user": "${workflow.input.data}"
+        }
+      }
+    },
+    {
+      "id": "log_new_user",
+      "name": "Log New User",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "console.log(`New user registered: ${userData.name} (${userData.email})`); return { message: 'User logged successfully', user: userData };",
+        "context": {
+          "userData": "${steps.extract_user_data.data}"
+        }
+      },
+      "dependsOn": ["extract_user_data"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "continue",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "event", "user"],
+    "notes": "This workflow demonstrates event triggers. It reacts to user.created events from the auth-service."
+  }
+}
