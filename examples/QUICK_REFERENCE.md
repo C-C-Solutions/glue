@@ -1,5 +1,7 @@
 # Example Workflows - Quick Reference
 
+> **About Triggers**: All examples use `manual` triggers (API-initiated execution). For information about other trigger types like `webhook`, `schedule`, and `event`, see [TRIGGER_TYPES.md](./TRIGGER_TYPES.md).
+
 ## Available Examples
 
 | # | File | Connectors | Complexity | External Dependencies |

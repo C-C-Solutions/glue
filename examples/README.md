@@ -2,6 +2,8 @@
 
 This directory contains example workflow definitions that demonstrate the power of the Glue integration engine.
 
+> **Note on Triggers**: All examples use `manual` triggers for easy testing. For detailed information about trigger types (`manual`, `webhook`, `schedule`, `event`), see [TRIGGER_TYPES.md](./TRIGGER_TYPES.md).
+
 ## 🚀 New: Individual Connector Examples
 
 We've added simple, working examples for each connector that you can test immediately:
