@@ -1,0 +1,31 @@
+{
+  "id": "simple-http-example",
+  "name": "Simple HTTP Connector Example",
+  "version": "1.0.0",
+  "description": "Basic HTTP connector example that fetches data from a public API",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_user",
+      "name": "Fetch GitHub User",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://api.github.com/users/octocat",
+        "method": "GET",
+        "timeout": 30000
+      }
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "http", "simple"],
+    "notes": "This workflow demonstrates the HTTP connector by fetching public GitHub user data. No authentication required."
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "smtp-notification-example",
+  "name": "SMTP Email Notification",
+  "version": "1.0.0",
+  "description": "Example using SMTP connector to send email notifications",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_data",
+      "name": "Fetch Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/todos/1",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "send_notification",
+      "name": "Send Email Notification",
+      "type": "connector",
+      "config": {
+        "connectorType": "smtp",
+        "host": "${env.SMTP_HOST}",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user": "${env.SMTP_USER}",
+          "pass": "${env.SMTP_PASS}"
+        },
+        "from": "${env.SMTP_FROM}"
+      },
+      "parameters": {
+        "to": "${workflow.input.recipientEmail}",
+        "subject": "Task Status Update",
+        "html": "<h2>Task Update</h2><p><strong>Task:</strong> ${steps.fetch_data.data.title}</p><p><strong>Status:</strong> ${steps.fetch_data.data.completed}</p>"
+      },
+      "dependsOn": ["fetch_data"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "smtp", "email", "notification"],
+    "notes": "This workflow demonstrates the SMTP connector by fetching data and sending an email notification. Requires environment variables: SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM. Pass recipientEmail in workflow input."
+  }
+}

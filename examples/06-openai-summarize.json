@@ -1,0 +1,48 @@
+{
+  "id": "openai-summarize-example",
+  "name": "OpenAI Text Summarization",
+  "version": "1.0.0",
+  "description": "Example using OpenAI connector for AI-powered text summarization",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "fetch_article",
+      "name": "Fetch Article",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "method": "GET",
+        "timeout": 30000
+      }
+    },
+    {
+      "id": "summarize",
+      "name": "Generate AI Summary",
+      "type": "connector",
+      "config": {
+        "connectorType": "openai",
+        "apiKey": "${env.OPENAI_API_KEY}",
+        "model": "gpt-4o-mini",
+        "temperature": 0.5,
+        "maxTokens": 200
+      },
+      "parameters": {
+        "systemPrompt": "You are a helpful assistant that creates concise summaries.",
+        "userPrompt": "Summarize this article in 2-3 sentences: Title: ${steps.fetch_article.data.title}. Body: ${steps.fetch_article.data.body}"
+      },
+      "dependsOn": ["fetch_article"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "openai", "ai", "summarization"],
+    "notes": "This workflow demonstrates the OpenAI connector by fetching content and generating an AI summary. Requires OPENAI_API_KEY environment variable. Uses gpt-4o-mini for cost efficiency."
+  }
+}

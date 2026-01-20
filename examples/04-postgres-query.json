@@ -1,0 +1,38 @@
+{
+  "id": "postgres-query-example",
+  "name": "Postgres Query Example",
+  "version": "1.0.0",
+  "description": "Example using Postgres connector to query a database",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "query_users",
+      "name": "Query Users Table",
+      "type": "connector",
+      "config": {
+        "connectorType": "postgres",
+        "host": "${env.DB_HOST}",
+        "port": 5432,
+        "database": "${env.DB_NAME}",
+        "user": "${env.DB_USER}",
+        "password": "${env.DB_PASSWORD}",
+        "ssl": false
+      },
+      "parameters": {
+        "query": "SELECT id, name, email FROM users WHERE active = $1 LIMIT $2",
+        "params": [true, 10]
+      }
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "postgres", "database"],
+    "notes": "This workflow demonstrates the Postgres connector. Requires database connection environment variables: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD. The query uses parameterized statements for security."
+  }
+}
