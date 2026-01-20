@@ -8,11 +8,38 @@ export interface RetryPolicy {
 }
 
 /**
- * Step configuration (union type, specific configs per step type)
+ * Connector step configuration
+ * Embeds connector-specific data including type and connector config
  */
-export interface StepConfig {
+export interface ConnectorStepConfig {
+  connectorType: 'http' | 'postgres' | 'openai' | 'smtp' | 's3' | 'javascript' | 'graphql';
   [key: string]: unknown;
 }
+
+/**
+ * Transformer step configuration
+ */
+export interface TransformerStepConfig {
+  mapping: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * Condition step configuration
+ */
+export interface ConditionStepConfig {
+  condition: {
+    field: string;
+    operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains';
+    value: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * Step configuration (union type that embeds step-specific data)
+ */
+export type StepConfig = ConnectorStepConfig | TransformerStepConfig | ConditionStepConfig | Record<string, unknown>;
 
 /**
  * Individual step definition in a workflow

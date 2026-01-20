@@ -1,5 +1,14 @@
 import { StepDefinition, StepExecution } from '../types';
-import { BaseConnector, HttpConnector } from '../connectors';
+import { 
+  BaseConnector, 
+  HttpConnector,
+  PostgresConnector,
+  OpenAIConnector,
+  SMTPConnector,
+  S3Connector,
+  JavaScriptConnector,
+  GraphQLConnector
+} from '../connectors';
 import { JsonTransformer } from '../transformers';
 
 /**
@@ -13,8 +22,14 @@ export class StepRunner {
     this.connectors = new Map();
     this.transformer = new JsonTransformer();
     
-    // Register built-in connectors
+    // Register all built-in connectors
     this.registerConnector(new HttpConnector());
+    this.registerConnector(new PostgresConnector());
+    this.registerConnector(new OpenAIConnector());
+    this.registerConnector(new SMTPConnector());
+    this.registerConnector(new S3Connector());
+    this.registerConnector(new JavaScriptConnector());
+    this.registerConnector(new GraphQLConnector());
   }
   
   /**
