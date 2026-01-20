@@ -137,6 +137,9 @@ export class PostgresConnector extends BaseConnector {
 
   /**
    * Close all connection pools
+   * This method should be called when shutting down the application
+   * or when you need to release database connections.
+   * Not part of BaseConnector interface - call manually when needed.
    */
   async cleanup(): Promise<void> {
     const closePromises = Array.from(this.pools.values()).map((pool) =>

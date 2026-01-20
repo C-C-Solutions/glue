@@ -76,29 +76,24 @@ export class GraphQLConnector extends BaseConnector {
       // Get or create client
       const client = this.getClient(graphqlConfig);
 
-      // Execute query/mutation with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        graphqlConfig.timeout,
+      // Execute query/mutation with timeout using Promise.race
+      const requestPromise = client.request(
+        graphqlInput.query,
+        graphqlInput.variables || {},
       );
 
-      try {
-        const data = await client.request(
-          graphqlInput.query,
-          graphqlInput.variables || {},
-        );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Request timeout after ${graphqlConfig.timeout}ms`));
+        }, graphqlConfig.timeout);
+      });
 
-        clearTimeout(timeoutId);
+      const data = await Promise.race([requestPromise, timeoutPromise]);
 
-        return {
-          success: true,
-          data,
-        };
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
+      return {
+        success: true,
+        data,
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

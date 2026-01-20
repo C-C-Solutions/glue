@@ -28,6 +28,11 @@ export type JavaScriptInput = z.infer<typeof javascriptInputSchema>;
 /**
  * JavaScript/Code connector implementation
  * Executes JavaScript code in a sandboxed environment
+ * 
+ * SECURITY NOTE: This connector intentionally executes user-provided code.
+ * The code is run in a sandboxed VM context with limited access to globals,
+ * but it should only be used in trusted environments or with trusted code.
+ * Do not expose this connector to untrusted users.
  */
 export class JavaScriptConnector extends BaseConnector {
   readonly type = "javascript";
