@@ -8,11 +8,26 @@ export interface RetryPolicy {
 }
 
 /**
+ * Available connector types
+ */
+export const CONNECTOR_TYPES = [
+  'http',
+  'postgres',
+  'openai',
+  'smtp',
+  's3',
+  'javascript',
+  'graphql',
+] as const;
+
+export type ConnectorType = typeof CONNECTOR_TYPES[number];
+
+/**
  * Connector step configuration
  * Embeds connector-specific data including type and connector config
  */
 export interface ConnectorStepConfig {
-  connectorType: 'http' | 'postgres' | 'openai' | 'smtp' | 's3' | 'javascript' | 'graphql';
+  connectorType: ConnectorType;
   [key: string]: unknown;
 }
 
@@ -38,8 +53,9 @@ export interface ConditionStepConfig {
 
 /**
  * Step configuration (union type that embeds step-specific data)
+ * Note: Includes a generic fallback to allow runtime validation of unknown configs
  */
-export type StepConfig = ConnectorStepConfig | TransformerStepConfig | ConditionStepConfig | Record<string, unknown>;
+export type StepConfig = ConnectorStepConfig | TransformerStepConfig | ConditionStepConfig | { [key: string]: unknown };
 
 /**
  * Individual step definition in a workflow
