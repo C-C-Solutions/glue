@@ -5,7 +5,14 @@ An opinionated integration engine for connecting services, transforming data, an
 ## 🚀 Features
 
 - **Workflow Orchestration**: Define and execute complex workflows with DAG support
-- **Connectors**: Built-in HTTP/REST connector with extensible architecture
+- **Connectors**: Built-in connectors for common integrations:
+  - **HTTP/REST**: API calls with variable interpolation
+  - **PostgreSQL**: SQL query execution with connection pooling
+  - **OpenAI**: AI-powered text processing and transformation
+  - **SMTP**: Email sending with attachment support
+  - **S3**: Object storage operations (AWS S3 compatible)
+  - **JavaScript**: Sandboxed code execution for custom logic
+  - **GraphQL**: Query and mutation execution
 - **Data Transformation**: JSONPath-based transformations
 - **Queue-based Processing**: BullMQ for reliable job processing
 - **REST API**: Fastify-based API for workflow management
@@ -227,7 +234,19 @@ The execution engine (`@glue/core`):
 Connectors integrate with external systems:
 
 - **HTTP Connector**: REST API calls with variable interpolation
-- **Base Connector**: Abstract class for custom connectors
+- **PostgreSQL Connector**: Execute SQL queries with connection pooling for database operations
+- **OpenAI Connector**: AI-powered text processing using GPT models for intelligent data transformation
+- **SMTP Connector**: Send emails with attachments via SMTP servers
+- **S3 Connector**: Object storage operations (putObject, getObject, listObjects) for AWS S3 or compatible services
+- **JavaScript Connector**: Execute custom JavaScript code in a sandboxed environment for complex data mapping
+- **GraphQL Connector**: Execute GraphQL queries and mutations with variable support
+- **Base Connector**: Abstract class for implementing custom connectors
+
+Each connector follows a consistent pattern:
+- Zod schema validation for configuration and input
+- Type-safe TypeScript interfaces
+- Comprehensive error handling
+- Connection pooling/reuse where applicable
 
 ### Queue Processing
 
