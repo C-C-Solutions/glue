@@ -4,6 +4,9 @@
 
 set -e
 
+# Enable nullglob to handle non-matching patterns
+shopt -s nullglob
+
 API_URL="${API_URL:-http://localhost:3000}"
 EXAMPLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -27,6 +30,40 @@ print_error() {
 
 print_info() {
     echo "ℹ $1"
+}
+
+# Escape a string for safe JSON inclusion
+json_escape() {
+    local input="$1"
+    # Use printf and jq for proper JSON escaping if available, otherwise fallback to basic escaping
+    if command -v jq >/dev/null 2>&1; then
+        printf '%s' "$input" | jq -Rs .
+    else
+        # Basic escaping for common cases
+        printf '%s' "$input" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g; s/\r/\\r/g; s/\t/\\t/g'
+    fi
+}
+
+# Validate email format
+validate_email() {
+    local email="$1"
+    if [[ "$email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Validate JSON format
+validate_json() {
+    local json="$1"
+    if command -v jq >/dev/null 2>&1; then
+        echo "$json" | jq . >/dev/null 2>&1
+        return $?
+    else
+        print_warning "jq not available, skipping JSON validation"
+        return 0
+    fi
 }
 
 # Check if API is running
@@ -205,7 +242,7 @@ interactive_mode() {
             3)
                 for i in {1..7}; do
                     files=("${EXAMPLE_DIR}"/0${i}-*.json)
-                    if [ -f "${files[0]}" ]; then
+                    if [ ${#files[@]} -gt 0 ] && [ -f "${files[0]}" ]; then
                         test_individual "${files[0]}"
                         sleep 2
                     else
@@ -216,10 +253,24 @@ interactive_mode() {
             4)
                 read -p "Enter userId (default: 1): " user_id
                 user_id=${user_id:-1}
+                
+                # Validate userId is a number
+                if ! [[ "$user_id" =~ ^[0-9]+$ ]]; then
+                    print_error "Invalid userId, must be a number"
+                    continue
+                fi
+                
                 read -p "Enter notification email: " email
-                # Escape special characters in email for JSON
-                email_escaped=$(echo "$email" | sed 's/\\/\\\\/g; s/"/\\"/g')
-                input="{\"userId\": ${user_id}, \"notificationEmail\": \"${email_escaped}\"}"
+                
+                # Validate email format
+                if ! validate_email "$email"; then
+                    print_error "Invalid email format"
+                    continue
+                fi
+                
+                # Use JSON-safe escaping
+                email_json=$(json_escape "$email")
+                input="{\"userId\": ${user_id}, \"notificationEmail\": ${email_json}}"
                 test_individual "${EXAMPLE_DIR}/08-all-connectors-complete.json" "$input"
                 ;;
             5)
@@ -234,6 +285,13 @@ interactive_mode() {
                 read -p "Enter workflow file path: " file_path
                 read -p "Enter input JSON (or press Enter for {}): " input_json
                 input_json=${input_json:-'{}'}
+                
+                # Validate JSON format
+                if ! validate_json "$input_json"; then
+                    print_error "Invalid JSON format"
+                    continue
+                fi
+                
                 test_individual "$file_path" "$input_json"
                 ;;
             8)
