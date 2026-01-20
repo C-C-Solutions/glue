@@ -1,82 +1,100 @@
 # Workflow Examples
 
-This directory contains example workflow definitions that demonstrate the flexibility and power of the Glue integration engine.
+This directory contains example workflow definitions that demonstrate the power of the Glue integration engine.
 
-## Overview
+## Quick Start: Parameters-Based Workflows ⭐
 
-Glue supports **any number of connectors in any combination**, allowing you to build complex data pipelines by chaining connectors together. Each step's output automatically becomes available as input to subsequent steps.
+The **recommended approach** uses the `parameters` field for explicit, maintainable data flow.
 
-## Available Connectors
-
-The following connectors are available and can be used in any combination:
-
-1. **HTTP** - Make HTTP/REST API calls
-2. **JavaScript** - Execute JavaScript code for transformations
-3. **Postgres** - Query and manipulate PostgreSQL databases
-4. **S3** - Interact with AWS S3 or S3-compatible storage (like LocalStack)
-5. **OpenAI** - Use AI for intelligent data processing and generation
-6. **SMTP** - Send emails via SMTP
-7. **GraphQL** - Query GraphQL APIs
-
-## Two Approaches to Step Configuration
-
-Glue supports two approaches for configuring steps:
-
-### Approach 1: Transformer-Based (Legacy)
-
-Uses transformer steps to prepare input for connectors. Data flows implicitly from step to step.
-
-### Approach 2: Parameters-Based (Recommended)
-
-Uses the `parameters` field with explicit variable interpolation. **This is the recommended approach** for most workflows.
-
-## Parameters-Based Configuration
-
-The `parameters` field allows you to explicitly reference workflow inputs, previous step outputs, and environment variables using variable interpolation syntax.
-
-### Variable Interpolation Syntax
-
-- `${workflow.input.fieldName}` - Reference workflow input
-- `${steps.stepId.fieldName}` - Reference output from a specific step
-- `${env.VAR_NAME}` - Reference environment variable
-
-### Benefits
-
-1. **Explicit Dependencies**: Clear what data each step needs
-2. **No Extra Steps**: No transformer steps needed for simple data passing
-3. **Decoupled Connectors**: Connectors don't need to know about other connectors
-4. **Maintainable**: Easy to understand data flow at a glance
-
-### Example: JavaScript Connector with Parameters
+### Basic Example
 
 ```json
 {
-  "id": "transform_data",
-  "name": "Transform Data",
+  "steps": [
+    {
+      "id": "fetch",
+      "type": "connector",
+      "config": {
+        "connectorType": "http",
+        "url": "https://api.example.com/data",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "process",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return { result: data.value * 2 };",
+        "context": { "data": "${steps.fetch.data}" }
+      },
+      "dependsOn": ["fetch"]
+    }
+  ]
+}
+```
+
+### Variable Interpolation
+
+Reference data explicitly using these patterns:
+
+| Pattern | Example | Description |
+|---------|---------|-------------|
+| `${workflow.input.field}` | `${workflow.input.userId}` | Workflow input data |
+| `${steps.stepId.field}` | `${steps.fetch.data.name}` | Output from specific step |
+| `${env.VAR_NAME}` | `${env.API_KEY}` | Environment variable |
+
+### Why Parameters?
+
+✅ **Explicit Dependencies** - Clear what data each step needs  
+✅ **No Extra Steps** - Eliminate transformer steps for simple cases  
+✅ **Decoupled** - Connectors don't know about other connectors  
+✅ **Maintainable** - Easy to understand data flow at a glance  
+
+## Available Connectors
+
+All 7 connectors work with the parameters-based approach:
+
+1. **HTTP** - REST API calls
+2. **JavaScript** - Code execution for transformations
+3. **Postgres** - SQL queries
+4. **S3** - Object storage operations
+5. **OpenAI** - AI-powered processing
+6. **SMTP** - Email sending
+7. **GraphQL** - GraphQL queries/mutations
+
+## Connector Examples
+
+### JavaScript Connector
+
+Transform data with custom code:
+
+```json
+{
+  "id": "transform",
   "type": "connector",
   "config": {
     "connectorType": "javascript",
     "timeout": 5000
   },
   "parameters": {
-    "code": "return { doubled: value * 2 };",
-    "context": { "value": "${steps.fetch_data.data.number}" }
+    "code": "return { doubled: value * 2, original: value };",
+    "context": { "value": "${steps.fetch.data.number}" }
   },
-  "dependsOn": ["fetch_data"]
+  "dependsOn": ["fetch"]
 }
 ```
 
-**Key Points:**
-- `config` contains connector settings (timeout)
-- `parameters` contains the data to process with explicit references
-- Dependencies are clear: references `${steps.fetch_data.data.number}`
+### OpenAI Connector
 
-### Example: OpenAI Connector with Parameters
+Generate AI content with explicit prompts:
 
 ```json
 {
-  "id": "generate_summary",
-  "name": "Generate AI Summary",
+  "id": "summarize",
   "type": "connector",
   "config": {
     "connectorType": "openai",
@@ -86,303 +104,300 @@ The `parameters` field allows you to explicitly reference workflow inputs, previ
   },
   "parameters": {
     "systemPrompt": "You are a helpful assistant",
-    "userPrompt": "Summarize this: ${steps.fetch_post.data.content}"
+    "userPrompt": "Summarize: ${steps.fetch.data.content}"
   },
-  "dependsOn": ["fetch_post"]
+  "dependsOn": ["fetch"]
 }
 ```
 
-**Key Points:**
-- `config` contains API key and model settings
-- `parameters` contains prompts with explicit data references
-- Static values (systemPrompt) and dynamic values (userPrompt) both in parameters
+### S3 Connector
 
-Each step in a workflow embeds its own connector-specific configuration. The configuration is passed directly to the connector for execution:
+Save files to cloud storage:
 
 ```json
 {
-  "id": "my_step",
-  "name": "My Step",
+  "id": "save",
+  "type": "connector",
+  "config": {
+    "connectorType": "s3",
+    "region": "us-east-1",
+    "bucket": "my-bucket",
+    "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+    "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}"
+  },
+  "parameters": {
+    "action": "putObject",
+    "key": "reports/${workflow.input.userId}/data.json",
+    "content": "${steps.transform.data}",
+    "contentType": "application/json"
+  },
+  "dependsOn": ["transform"]
+}
+```
+
+### SMTP Connector
+
+Send emails with dynamic content:
+
+```json
+{
+  "id": "notify",
+  "type": "connector",
+  "config": {
+    "connectorType": "smtp",
+    "host": "smtp.example.com",
+    "port": 587,
+    "auth": {
+      "user": "${env.SMTP_USER}",
+      "pass": "${env.SMTP_PASS}"
+    },
+    "from": "noreply@example.com"
+  },
+  "parameters": {
+    "to": "${workflow.input.email}",
+    "subject": "Report Ready",
+    "html": "<h2>Summary</h2><p>${steps.summarize.data.content}</p>"
+  },
+  "dependsOn": ["summarize"]
+}
+```
+
+### Postgres Connector
+
+Query databases with parameters:
+
+```json
+{
+  "id": "query",
+  "type": "connector",
+  "config": {
+    "connectorType": "postgres",
+    "host": "${env.DB_HOST}",
+    "database": "analytics",
+    "user": "${env.DB_USER}",
+    "password": "${env.DB_PASSWORD}"
+  },
+  "parameters": {
+    "query": "SELECT * FROM users WHERE id = $1",
+    "params": ["${workflow.input.userId}"]
+  }
+}
+```
+
+### HTTP Connector
+
+Make API calls with dynamic URLs:
+
+```json
+{
+  "id": "fetch",
   "type": "connector",
   "config": {
     "connectorType": "http",
-    "url": "https://api.example.com/data",
-    "method": "POST",
+    "url": "https://api.example.com/users/${workflow.input.userId}",
+    "method": "GET",
     "headers": {
       "Authorization": "Bearer ${env.API_TOKEN}"
-    },
-    "body": {
-      "key": "value"
     }
   }
 }
 ```
 
-## Examples
-
-### 1. Parameters-Based Workflow (`parameters-workflow-example.json`) ⭐ **Recommended**
-
-A clean example using the **parameters field** for explicit data flow:
-1. Fetches data from HTTP API
-2. Transforms with JavaScript using `parameters` to reference step 1 output
-3. Saves to S3 using `parameters` to specify action and reference transformed data
-4. Generates AI summary using `parameters` with explicit prompts
-5. Sends email using `parameters` to reference workflow input and AI output
-
-**Key Benefits:**
-- Only 5 steps (no transformer steps needed!)
-- Dependencies are explicit and clear
-- Easy to understand data flow
-- Parameters show exactly what data each connector uses
-
-### 2. Multi-Connector Data Pipeline (`multi-connector-workflow.json`)
-
-A complete example using the **transformer-based approach**:
-1. Fetches data from an HTTP API
-2. Prepares JavaScript code input with a transformer
-3. Transforms data with JavaScript
-4. Prepares S3 input with a transformer  
-5. Saves to S3 (LocalStack)
-6. Prepares OpenAI prompts with a transformer
-7. Generates an AI summary with OpenAI
-8. Prepares email content with a transformer
-9. Sends an email via SMTP
-
-**Key Learning:** This example shows the legacy approach where transformer steps prepare input for connectors. While functional, it requires more steps and implicit data flow.
-
-### 3. Complete Workflow Example (`complete-workflow-example.json`)
-
-A comprehensive example that uses all 7 available connectors with the transformer approach:
-1. **HTTP** - Fetches user data from an API
-2. **JavaScript** - Transforms and enriches the data
-3. **Postgres** - Queries additional data from a database
-4. **OpenAI** - Generates an AI-powered report
-5. **S3** - Saves the report to cloud storage
-6. **SMTP** - Sends an email notification
-7. **GraphQL** - Updates a GraphQL service
-
-This example demonstrates:
-- Step dependencies (`dependsOn`)
-- Connector-specific configurations embedded in each step
-- Environment variable interpolation (`${env.VAR_NAME}`)
-- Input variable interpolation (`${input.field}`)
-- Retry policies for fault tolerance
-- Error handling strategies
-
-## Connector Input Formats
-
-Each connector expects input in a specific format. Here's a quick reference:
-
-### HTTP Connector
-```json
-{
-  "connectorType": "http",
-  "url": "https://api.example.com",
-  "method": "GET|POST|PUT|PATCH|DELETE",
-  "headers": { "key": "value" },
-  "body": { "data": "..." },
-  "timeout": 30000
-}
-```
-
-### JavaScript Connector
-**Config:**
-```json
-{
-  "connectorType": "javascript",
-  "timeout": 5000
-}
-```
-**Input (from previous step):**
-```json
-{
-  "code": "return { result: data.value * 2 };",
-  "context": { "data": { "value": 21 } }
-}
-```
-
-### Postgres Connector
-**Config:**
-```json
-{
-  "connectorType": "postgres",
-  "host": "localhost",
-  "port": 5432,
-  "database": "mydb",
-  "user": "user",
-  "password": "pass"
-}
-```
-**Input (from previous step):**
-```json
-{
-  "query": "SELECT * FROM users WHERE id = $1",
-  "params": [123]
-}
-```
-
-### S3 Connector
-**Config:**
-```json
-{
-  "connectorType": "s3",
-  "region": "us-east-1",
-  "bucket": "my-bucket",
-  "accessKeyId": "key",
-  "secretAccessKey": "secret",
-  "endpoint": "http://localhost:4566"
-}
-```
-**Input (from previous step):**
-```json
-{
-  "action": "putObject",
-  "key": "path/to/file.json",
-  "content": "file content",
-  "contentType": "application/json"
-}
-```
-
-### OpenAI Connector
-**Config:**
-```json
-{
-  "connectorType": "openai",
-  "apiKey": "sk-...",
-  "model": "gpt-4o",
-  "temperature": 0.7,
-  "maxTokens": 1000
-}
-```
-**Input (from previous step):**
-```json
-{
-  "systemPrompt": "You are a helpful assistant",
-  "userPrompt": "Generate a summary of this data: ..."
-}
-```
-
-### SMTP Connector
-**Config:**
-```json
-{
-  "connectorType": "smtp",
-  "host": "smtp.example.com",
-  "port": 587,
-  "secure": false,
-  "auth": {
-    "user": "user@example.com",
-    "pass": "password"
-  },
-  "from": "noreply@example.com"
-}
-```
-**Input (from previous step):**
-```json
-{
-  "to": "recipient@example.com",
-  "subject": "Report Ready",
-  "html": "<p>Your report is ready</p>"
-}
-```
-
 ### GraphQL Connector
-**Config:**
-```json
-{
-  "connectorType": "graphql",
-  "endpoint": "https://api.example.com/graphql",
-  "headers": {
-    "Authorization": "Bearer token"
-  }
-}
-```
-**Input (from previous step):**
-```json
-{
-  "query": "mutation { updateUser(id: $id, name: $name) { id name } }",
-  "variables": { "id": "123", "name": "John" }
-}
-```
 
-## Variable Interpolation
-
-Glue supports variable interpolation in workflow definitions:
-
-- **Environment variables**: `${env.VAR_NAME}`
-- **Workflow input**: `${input.field.nested}`
-
-These are resolved at runtime before the connector is executed.
-
-## Step Dependencies
-
-Use the `dependsOn` array to specify which steps must complete before a step can run:
+Execute GraphQL with variables:
 
 ```json
 {
-  "id": "step_2",
-  "name": "Process Data",
+  "id": "update",
   "type": "connector",
-  "config": { ... },
-  "dependsOn": ["step_1"]
+  "config": {
+    "connectorType": "graphql",
+    "endpoint": "${env.GRAPHQL_ENDPOINT}",
+    "headers": {
+      "Authorization": "Bearer ${env.GRAPHQL_TOKEN}"
+    }
+  },
+  "parameters": {
+    "query": "mutation UpdateUser($id: ID!, $name: String!) { updateUser(id: $id, name: $name) { id name } }",
+    "variables": {
+      "id": "${workflow.input.userId}",
+      "name": "${steps.transform.data.fullName}"
+    }
+  },
+  "dependsOn": ["transform"]
 }
 ```
 
-The output from dependent steps is automatically merged into the input for the current step.
+## Complete Workflow Examples
 
-## Error Handling
+### 1. Parameters-Based Pipeline ⭐ **Recommended**
 
-Configure error handling at the workflow level:
+**File:** `parameters-workflow-example.json`
 
+A complete 5-step data pipeline using parameters:
+1. **HTTP** - Fetch data from API
+2. **JavaScript** - Transform with explicit code reference
+3. **S3** - Save with explicit content reference
+4. **OpenAI** - Generate summary with explicit prompts
+5. **SMTP** - Send email with dynamic content
+
+**Why this approach?**
+- ✅ Only 5 steps (vs 9 with transformers)
+- ✅ Dependencies are explicit and clear
+- ✅ Easy to understand data flow
+- ✅ No transformer steps needed
+
+**Key pattern:**
 ```json
 {
-  "errorHandling": {
-    "onError": "stop|continue|retry",
-    "maxRetries": 3
+  "parameters": {
+    "field": "${steps.previousStep.data.value}"
   }
 }
 ```
 
-And at the step level with retry policies:
+### 2. Legacy Transformer-Based (For Reference)
 
+**Files:** `multi-connector-workflow.json`, `complete-workflow-example.json`
+
+These examples show the legacy approach using transformer steps. They're still supported but require more steps and implicit data flow.
+
+## Migration Guide
+
+### From Transformer-Based to Parameters
+
+**Before (9 steps):**
 ```json
-{
-  "retryPolicy": {
-    "maxAttempts": 3,
-    "delayMs": 1000,
-    "backoffMultiplier": 2
-  }
-}
+[
+  { "id": "fetch", "type": "connector", "config": {...} },
+  { "id": "prep_js", "type": "transformer", "config": { "mapping": {...} } },
+  { "id": "transform", "type": "connector", "dependsOn": ["prep_js"] },
+  { "id": "prep_s3", "type": "transformer", "config": { "mapping": {...} } },
+  { "id": "save", "type": "connector", "dependsOn": ["prep_s3"] }
+  // ... etc
+]
 ```
 
-## Running Workflows
-
-To execute a workflow, use the Glue API:
-
-```bash
-POST /api/workflows/{workflowId}/execute
-Content-Type: application/json
-
-{
-  "input": {
-    "userId": "123",
-    "action": "generate_report"
+**After (5 steps):**
+```json
+[
+  { 
+    "id": "fetch", 
+    "type": "connector", 
+    "config": {...} 
+  },
+  { 
+    "id": "transform", 
+    "type": "connector",
+    "parameters": {
+      "code": "...",
+      "context": { "data": "${steps.fetch.data}" }
+    },
+    "dependsOn": ["fetch"]
+  },
+  { 
+    "id": "save", 
+    "type": "connector",
+    "parameters": {
+      "action": "putObject",
+      "content": "${steps.transform.data}"
+    },
+    "dependsOn": ["transform"]
   }
-}
+  // ... etc
+]
 ```
 
-The workflow will execute steps in order, respecting dependencies, and return the execution results.
+**Benefits:**
+- 44% fewer steps
+- Explicit dependencies
+- Easier to maintain
 
 ## Best Practices
 
-1. **Keep steps focused**: Each step should do one thing well
-2. **Use descriptive names**: Make it clear what each step does
-3. **Add comments**: Use the `comment` field to document expected inputs
-4. **Handle errors**: Configure appropriate retry policies and error handling
-5. **Use environment variables**: Keep secrets out of workflow definitions
-6. **Test incrementally**: Build workflows step by step, testing each addition
-7. **Monitor executions**: Check execution logs to understand failures
+### 1. Use Parameters for Data References
 
-## Contributing
+✅ **Do:**
+```json
+{
+  "parameters": {
+    "userPrompt": "Process: ${steps.fetch.data.content}"
+  }
+}
+```
 
-Have a great workflow example? Submit a PR with your workflow definition and a brief description!
+❌ **Don't:**
+```json
+{
+  "id": "prep",
+  "type": "transformer",
+  "config": { "mapping": { "userPrompt": "..." } }
+}
+```
+
+### 2. Keep Config Static, Parameters Dynamic
+
+✅ **Do:**
+```json
+{
+  "config": { "apiKey": "${env.KEY}", "model": "gpt-4o" },
+  "parameters": { "userPrompt": "${steps.fetch.data}" }
+}
+```
+
+❌ **Don't:**
+```json
+{
+  "config": { "apiKey": "${env.KEY}", "userPrompt": "${steps.fetch.data}" }
+}
+```
+
+### 3. Use Descriptive Step IDs
+
+✅ **Do:**
+```json
+"${steps.fetch_user_data.data.email}"
+```
+
+❌ **Don't:**
+```json
+"${steps.step1.data.email}"
+```
+
+### 4. Document Dependencies
+
+```json
+{
+  "id": "send_email",
+  "parameters": {
+    "to": "${workflow.input.email}",
+    "content": "${steps.generate_summary.data.content}"
+  },
+  "dependsOn": ["generate_summary"],
+  "comment": "Sends email using AI-generated summary from previous step"
+}
+```
+
+## Troubleshooting
+
+### Variable Not Found
+
+**Error:** `Variable ${steps.fetch.data} is undefined`
+
+**Solution:** Check that:
+1. Step ID is correct
+2. Step has completed successfully
+3. Path to data is correct
+
+### Circular Dependencies
+
+**Error:** `Circular dependency detected`
+
+**Solution:** Review `dependsOn` fields and ensure no circular references.
+
+## Additional Resources
+
+- [API Documentation](../apps/api/README.md)
+- [Core Engine](../packages/core/README.md)
+- [Connector Development Guide](../packages/core/src/connectors/README.md)
