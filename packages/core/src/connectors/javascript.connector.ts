@@ -70,13 +70,31 @@ export class JavaScriptConnector extends BaseConnector {
     const jsInput = inputResult.data;
 
     try {
+      // Sanitize user context - only allow primitive values and plain objects
+      const sanitizedContext: Record<string, any> = {};
+      if (jsInput.context) {
+        for (const [key, value] of Object.entries(jsInput.context)) {
+          // Only allow primitive types and plain objects/arrays
+          if (
+            value === null ||
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean" ||
+            Array.isArray(value) ||
+            (typeof value === "object" && value.constructor === Object)
+          ) {
+            sanitizedContext[key] = value;
+          }
+        }
+      }
+
       // Create a sandboxed context with safe globals
       const sandbox = {
         // Provide safe built-ins
         console: {
-          log: (...args: any[]) => console.log("[Sandbox]", ...args),
-          error: (...args: any[]) => console.error("[Sandbox]", ...args),
-          warn: (...args: any[]) => console.warn("[Sandbox]", ...args),
+          log: () => {}, // Disable logging to prevent information leakage
+          error: () => {},
+          warn: () => {},
         },
         JSON,
         Math,
@@ -86,8 +104,8 @@ export class JavaScriptConnector extends BaseConnector {
         Boolean,
         Array,
         Object,
-        // User-provided context
-        ...jsInput.context,
+        // User-provided sanitized context
+        ...sanitizedContext,
         // Variable to capture result
         __result: undefined,
       };
