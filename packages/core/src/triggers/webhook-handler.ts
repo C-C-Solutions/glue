@@ -46,7 +46,7 @@ export class WebhookHandler implements TriggerHandler {
   /**
    * Register a workflow with webhook trigger
    */
-  registerWorkflow(workflow: WorkflowDefinition): void {
+  async registerWorkflow(workflow: WorkflowDefinition): Promise<void> {
     if (workflow.trigger.type !== 'webhook') {
       throw new Error(`Invalid trigger type: ${workflow.trigger.type}`);
     }

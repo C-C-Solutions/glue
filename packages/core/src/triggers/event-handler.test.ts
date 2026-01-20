@@ -12,7 +12,7 @@ describe('EventHandler', () => {
     handler.setExecutionCallback(mockExecuteCallback);
   });
 
-  it('should register a workflow with event trigger', () => {
+  it('should register a workflow with event trigger', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Event Workflow',
@@ -27,7 +27,7 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
     const registrations = handler.getRegistrationsByEventType('user.created');
 
     expect(registrations).toHaveLength(1);
@@ -35,7 +35,7 @@ describe('EventHandler', () => {
     expect(registrations[0].config.eventType).toBe('user.created');
   });
 
-  it('should register multiple workflows for the same event type', () => {
+  it('should register multiple workflows for the same event type', async () => {
     const workflow1: WorkflowDefinition = {
       id: 'test-workflow-1',
       name: 'Test Event Workflow 1',
@@ -62,14 +62,14 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow1);
-    handler.registerWorkflow(workflow2);
+    await handler.registerWorkflow(workflow1);
+    await handler.registerWorkflow(workflow2);
 
     const registrations = handler.getRegistrationsByEventType('user.created');
     expect(registrations).toHaveLength(2);
   });
 
-  it('should throw error for invalid trigger type', () => {
+  it('should throw error for invalid trigger type', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Workflow',
@@ -80,10 +80,10 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    expect(() => handler.registerWorkflow(workflow)).toThrow('Invalid trigger type');
+    await expect(handler.registerWorkflow(workflow)).rejects.toThrow('Invalid trigger type');
   });
 
-  it('should throw error for missing eventType configuration', () => {
+  it('should throw error for missing eventType configuration', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Workflow',
@@ -95,7 +95,7 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    expect(() => handler.registerWorkflow(workflow)).toThrow('Event trigger requires an eventType configuration');
+    await expect(handler.registerWorkflow(workflow)).rejects.toThrow('Event trigger requires an eventType configuration');
   });
 
   it('should publish event and trigger matching workflows', async () => {
@@ -112,7 +112,7 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     const event: InternalEvent = {
       eventType: 'user.created',
@@ -141,7 +141,7 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     // Event with matching source
     const event1: InternalEvent = {
@@ -183,7 +183,7 @@ describe('EventHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     // Event matching filter
     const event1: InternalEvent = {

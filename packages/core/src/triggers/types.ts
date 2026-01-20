@@ -8,6 +8,16 @@ export interface TriggerHandler {
   initialize(): Promise<void>;
   
   /**
+   * Register a workflow with this trigger handler
+   */
+  registerWorkflow(workflow: any): Promise<void>;
+  
+  /**
+   * Unregister a workflow from this trigger handler
+   */
+  unregisterWorkflow(workflowId: string): void;
+  
+  /**
    * Shutdown the trigger handler
    */
   shutdown(): Promise<void>;

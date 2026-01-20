@@ -57,7 +57,7 @@ export class EventHandler implements TriggerHandler {
   /**
    * Register a workflow with event trigger
    */
-  registerWorkflow(workflow: WorkflowDefinition): void {
+  async registerWorkflow(workflow: WorkflowDefinition): Promise<void> {
     if (workflow.trigger.type !== 'event') {
       throw new Error(`Invalid trigger type: ${workflow.trigger.type}`);
     }

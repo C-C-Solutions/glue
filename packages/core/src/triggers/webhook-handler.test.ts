@@ -12,7 +12,7 @@ describe('WebhookHandler', () => {
     handler.setExecutionCallback(mockExecuteCallback);
   });
 
-  it('should register a workflow with webhook trigger', () => {
+  it('should register a workflow with webhook trigger', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Webhook Workflow',
@@ -27,7 +27,7 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
     const registration = handler.getRegistrationByPath('/test/webhook');
 
     expect(registration).toBeDefined();
@@ -35,7 +35,7 @@ describe('WebhookHandler', () => {
     expect(registration?.config.path).toBe('/test/webhook');
   });
 
-  it('should normalize webhook path to start with /', () => {
+  it('should normalize webhook path to start with /', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Webhook Workflow',
@@ -50,14 +50,14 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
     const registration = handler.getRegistrationByPath('/test/webhook');
 
     expect(registration).toBeDefined();
     expect(registration?.config.path).toBe('/test/webhook');
   });
 
-  it('should throw error for invalid trigger type', () => {
+  it('should throw error for invalid trigger type', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Workflow',
@@ -68,10 +68,10 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    expect(() => handler.registerWorkflow(workflow)).toThrow('Invalid trigger type');
+    await expect(handler.registerWorkflow(workflow)).rejects.toThrow('Invalid trigger type');
   });
 
-  it('should throw error for missing path configuration', () => {
+  it('should throw error for missing path configuration', async () => {
     const workflow: WorkflowDefinition = {
       id: 'test-workflow',
       name: 'Test Workflow',
@@ -83,7 +83,7 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    expect(() => handler.registerWorkflow(workflow)).toThrow('Webhook trigger requires a path configuration');
+    await expect(handler.registerWorkflow(workflow)).rejects.toThrow('Webhook trigger requires a path configuration');
   });
 
   it('should handle webhook request successfully', async () => {
@@ -101,7 +101,7 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     const result = await handler.handleWebhook(
       '/test/webhook',
@@ -129,7 +129,7 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     await expect(
       handler.handleWebhook('/test/webhook', 'GET', {}, {})
@@ -156,7 +156,7 @@ describe('WebhookHandler', () => {
       steps: [],
     };
 
-    handler.registerWorkflow(workflow);
+    await handler.registerWorkflow(workflow);
 
     // Missing secret
     await expect(

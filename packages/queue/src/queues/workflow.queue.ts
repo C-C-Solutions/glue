@@ -62,7 +62,11 @@ export class WorkflowQueue {
       },
     );
 
-    return job.id!;
+    if (!job.id) {
+      throw new Error('Failed to create workflow job: job ID is undefined');
+    }
+
+    return job.id;
   }
 
   /**
@@ -84,7 +88,11 @@ export class WorkflowQueue {
       },
     );
 
-    return job.id!;
+    if (!job.id) {
+      throw new Error('Failed to create resume job: job ID is undefined');
+    }
+
+    return job.id;
   }
 
   /**
@@ -127,7 +135,11 @@ export class WorkflowQueue {
       }
     );
 
-    return job.id!;
+    if (!job.id) {
+      throw new Error('Failed to create repeatable job: job ID is undefined');
+    }
+
+    return job.id;
   }
 
   /**
