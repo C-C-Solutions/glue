@@ -1,0 +1,57 @@
+{
+  "id": "webhook-github-push",
+  "name": "GitHub Push Webhook Example",
+  "version": "1.0.0",
+  "description": "Example workflow triggered by GitHub push webhook",
+  "trigger": {
+    "type": "webhook",
+    "config": {
+      "path": "/github/push",
+      "method": "POST",
+      "authentication": {
+        "type": "secret",
+        "headerName": "X-Hub-Signature-256"
+      }
+    }
+  },
+  "steps": [
+    {
+      "id": "extract_commit_info",
+      "name": "Extract Commit Information",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "return { repo: payload.repository.name, commit: payload.head_commit.id.substring(0, 7), author: payload.head_commit.author.name, message: payload.head_commit.message };",
+        "context": {
+          "payload": "${workflow.input}"
+        }
+      }
+    },
+    {
+      "id": "log_commit",
+      "name": "Log Commit Details",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "console.log(`New commit to ${commit.repo} by ${commit.author}: ${commit.message}`); return commit;",
+        "context": {
+          "commit": "${steps.extract_commit_info.data}"
+        }
+      },
+      "dependsOn": ["extract_commit_info"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "webhook", "github"],
+    "notes": "This workflow demonstrates webhook triggers. It processes GitHub push events."
+  }
+}

@@ -419,16 +419,15 @@ As of this release, the Glue integration engine provides:
 | Trigger Type | Status | Notes |
 |--------------|--------|-------|
 | Manual | ✅ Fully Implemented | Available via POST /workflows/:id/execute |
-| Webhook | 🚧 Planned | Infrastructure defined, implementation pending |
-| Schedule | 🚧 Planned | Cron-based scheduling to be implemented |
-| Event | 🚧 Planned | Event bus integration to be implemented |
-
-**All example workflows in this repository currently use `manual` triggers** because they can be tested immediately via API calls. Webhook, schedule, and event triggers will be fully implemented in future releases.
+| Webhook | ✅ Fully Implemented | Registered on API startup, supports authentication |
+| Schedule | ✅ Fully Implemented | Cron-based scheduling with BullMQ repeatable jobs |
+| Event | ✅ Fully Implemented | Internal event bus with filtering support |
 
 ## Examples in This Repository
 
-All 8 example workflows use manual triggers for ease of testing:
+The repository includes example workflows for all trigger types:
 
+**Manual Triggers** (examples 01-08):
 ```bash
 # Execute any workflow manually
 curl -X POST http://localhost:3000/workflows/{workflowId}/execute \
@@ -436,7 +435,48 @@ curl -X POST http://localhost:3000/workflows/{workflowId}/execute \
   -d '{"key": "value"}'
 ```
 
-When webhook, schedule, and event triggers are implemented, these examples can be easily adapted by changing the trigger configuration while keeping the workflow steps unchanged.
+**Webhook Triggers** (example 09):
+```bash
+# Trigger via webhook endpoint
+curl -X POST http://localhost:3000/webhooks/github/push \
+  -H "Content-Type: application/json" \
+  -H "X-Hub-Signature-256: your-secret" \
+  -d '{"repository": {"name": "test"}, "head_commit": {...}}'
+```
+
+**Schedule Triggers** (example 10):
+- Automatically executed based on cron schedule
+- No manual trigger needed - runs at scheduled times
+
+**Event Triggers** (example 11):
+```bash
+# Publish an event to trigger workflows
+curl -X POST http://localhost:3000/events \
+  -H "Content-Type: application/json" \
+  -d '{"eventType": "user.created", "source": "auth-service", "data": {...}}'
+```
+
+## API Endpoints
+
+### Webhook Management
+- `GET /webhooks` - List all registered webhooks
+- `POST /webhooks/*` - Webhook endpoint (dynamic path based on workflow config)
+
+### Schedule Management
+- `GET /schedules` - List all registered scheduled workflows
+
+### Event Management
+- `GET /events/triggers` - List all registered event triggers
+- `POST /events` - Publish an event to trigger matching workflows
+
+## Testing
+
+Use the provided test script to try all trigger types:
+
+```bash
+cd examples
+./test-trigger-types.sh
+```
 
 ## Further Reading
 

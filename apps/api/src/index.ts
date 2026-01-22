@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { loadEnv } from '@glue/config';
-import { connectToDatabase } from '@glue/db';
+import { connectToDatabase, WorkflowRepository } from '@glue/db';
 import { WorkflowQueue } from '@glue/queue';
 import { buildApp } from './app';
+import { TriggerManager } from './triggers';
 
 /**
  * Start the API server
@@ -18,11 +19,19 @@ async function start() {
     // Create workflow queue
     const workflowQueue = new WorkflowQueue(env.REDIS_URL);
     
+    // Create workflow repository
+    const workflowRepo = new WorkflowRepository();
+    
+    // Initialize trigger manager
+    const triggerManager = new TriggerManager(workflowRepo, workflowQueue);
+    await triggerManager.initialize();
+    
     // Build Fastify app
     const app = await buildApp();
     
-    // Attach queue to app context
+    // Attach queue and trigger manager to app context
     (app as any).workflowQueue = workflowQueue;
+    (app as any).triggerManager = triggerManager;
     
     // Start server
     await app.listen({

@@ -75,4 +75,12 @@ export class WorkflowRepository {
     const count = await WorkflowModel.countDocuments({ workflowId: id });
     return count > 0;
   }
+  
+  /**
+   * Find workflows by trigger type
+   */
+  async findByTriggerType(triggerType: 'manual' | 'webhook' | 'schedule' | 'event'): Promise<WorkflowDefinition[]> {
+    const docs = await WorkflowModel.find({ 'trigger.type': triggerType });
+    return docs.map((doc) => (doc as WorkflowDocument).toWorkflowDefinition());
+  }
 }

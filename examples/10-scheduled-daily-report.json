@@ -1,0 +1,51 @@
+{
+  "id": "scheduled-daily-report",
+  "name": "Daily Report Scheduled Workflow",
+  "version": "1.0.0",
+  "description": "Example workflow that runs daily at 8 AM UTC",
+  "trigger": {
+    "type": "schedule",
+    "config": {
+      "cron": "0 8 * * *",
+      "timezone": "UTC"
+    }
+  },
+  "steps": [
+    {
+      "id": "generate_report_data",
+      "name": "Generate Report Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "const date = new Date(); return { date: date.toISOString(), report: 'Daily report for ' + date.toDateString(), metrics: { users: 1234, orders: 567 } };",
+        "context": {}
+      }
+    },
+    {
+      "id": "format_report",
+      "name": "Format Report",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript"
+      },
+      "parameters": {
+        "code": "return { title: data.report, content: `Users: ${data.metrics.users}, Orders: ${data.metrics.orders}` };",
+        "context": {
+          "data": "${steps.generate_report_data.data}"
+        }
+      },
+      "dependsOn": ["generate_report_data"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 3
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["example", "schedule", "report"],
+    "notes": "This workflow demonstrates scheduled triggers using cron expressions. It runs every day at 8 AM UTC."
+  }
+}
