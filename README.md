@@ -253,8 +253,6 @@ The project uses continuous delivery to automatically deploy apps to Coolify whe
 - **Package changes**: All apps are deployed (they depend on packages)
 - **Infrastructure changes**: Full redeploy of all apps
 
-For detailed setup instructions, manual deployments, and troubleshooting, see the **[Deployment Guide](./docs/DEPLOYMENT.md)**.
-
 ## 📝 Architecture
 
 ### Workflow Definition
