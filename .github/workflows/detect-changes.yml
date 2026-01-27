@@ -1,0 +1,51 @@
+name: Detect Changes
+
+on:
+  workflow_call:
+    outputs:
+      api-changed:
+        description: 'Whether the API app changed'
+        value: ${{ jobs.detect.outputs.api-changed }}
+      worker-changed:
+        description: 'Whether the worker app changed'
+        value: ${{ jobs.detect.outputs.worker-changed }}
+      packages-changed:
+        description: 'Whether any shared packages changed'
+        value: ${{ jobs.detect.outputs.packages-changed }}
+      infra-changed:
+        description: 'Whether infrastructure files changed'
+        value: ${{ jobs.detect.outputs.infra-changed }}
+
+jobs:
+  detect:
+    name: Detect changed files
+    runs-on: ubuntu-latest
+    outputs:
+      api-changed: ${{ steps.changes.outputs.api }}
+      worker-changed: ${{ steps.changes.outputs.worker }}
+      packages-changed: ${{ steps.changes.outputs.packages }}
+      infra-changed: ${{ steps.changes.outputs.infra }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            worker:
+              - 'apps/worker/**'
+            packages:
+              - 'packages/**'
+            infra:
+              - 'docker-compose.yml'
+              - '.github/workflows/**'
+              - 'Dockerfile'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'

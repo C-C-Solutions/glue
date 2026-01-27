@@ -1,0 +1,222 @@
+name: PR Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Auto-label PRs based on changed files
+  auto-label:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Label based on changed files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+  
+  # Add size label based on PR changes
+  size-label:
+    name: Add size label
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    
+    steps:
+      - name: Add size label
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/xs'
+          xs_max_size: 10
+          s_label: 'size/s'
+          s_max_size: 100
+          m_label: 'size/m'
+          m_max_size: 500
+          l_label: 'size/l'
+          l_max_size: 1000
+          xl_label: 'size/xl'
+          fail_if_xl: false
+  
+  # Validate PR title follows conventional commits
+  validate-pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    
+    steps:
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            starts with an uppercase character.
+  
+  # Check for breaking changes
+  check-breaking-changes:
+    name: Check breaking changes
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for breaking changes in title or body
+        id: breaking
+        run: |
+          # Check PR title for BREAKING CHANGE or !
+          if echo "${{ github.event.pull_request.title }}" | grep -qi "breaking\|!:"; then
+            echo "breaking=true" >> $GITHUB_OUTPUT
+          # Check PR body for BREAKING CHANGE
+          elif echo "${{ github.event.pull_request.body }}" | grep -qi "BREAKING CHANGE"; then
+            echo "breaking=true" >> $GITHUB_OUTPUT
+          else
+            echo "breaking=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Add breaking change label
+        if: steps.breaking.outputs.breaking == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['breaking-change']
+            });
+  
+  # Detect which apps/packages are affected
+  detect-changes:
+    name: Detect affected apps
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            worker:
+              - 'apps/worker/**'
+            packages:
+              - 'packages/**'
+            docs:
+              - '**/*.md'
+            workflows:
+              - '.github/workflows/**'
+            docker:
+              - '**/Dockerfile'
+              - 'docker-compose.yml'
+      
+      - name: Add component labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [];
+            
+            if (${{ steps.changes.outputs.api }}) labels.push('app:api');
+            if (${{ steps.changes.outputs.worker }}) labels.push('app:worker');
+            if (${{ steps.changes.outputs.packages }}) labels.push('packages');
+            if (${{ steps.changes.outputs.docs }}) labels.push('documentation');
+            if (${{ steps.changes.outputs.workflows }}) labels.push('ci/cd');
+            if (${{ steps.changes.outputs.docker }}) labels.push('docker');
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+      
+      - name: Add deployment impact comment
+        if: steps.changes.outputs.api == 'true' || steps.changes.outputs.worker == 'true' || steps.changes.outputs.packages == 'true' || steps.changes.outputs.docker == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const apiChanged = ${{ steps.changes.outputs.api }};
+            const workerChanged = ${{ steps.changes.outputs.worker }};
+            const packagesChanged = ${{ steps.changes.outputs.packages }};
+            const dockerChanged = ${{ steps.changes.outputs.docker }};
+            
+            let deployments = [];
+            
+            if (dockerChanged || packagesChanged) {
+              deployments.push('🔄 **Full deployment** will be triggered (infrastructure/packages changed)');
+            } else {
+              if (apiChanged) deployments.push('- API app');
+              if (workerChanged) deployments.push('- Worker app');
+            }
+            
+            if (deployments.length > 0) {
+              const body = `## 🚀 Deployment Impact\n\nMerging this PR will deploy:\n\n${deployments.join('\n')}`;
+              
+              // Check if comment already exists
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              const botComment = comments.data.find(comment => 
+                comment.user.type === 'Bot' && comment.body.includes('Deployment Impact')
+              );
+              
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: body
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: body
+                });
+              }
+            }

@@ -1,0 +1,75 @@
+# Label configuration for PR automation
+# See https://github.com/actions/labeler for syntax
+
+# Apps
+'app:api':
+  - changed-files:
+    - any-glob-to-any-file: 'apps/api/**'
+
+'app:worker':
+  - changed-files:
+    - any-glob-to-any-file: 'apps/worker/**'
+
+# Packages
+'packages':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/**'
+
+'package:core':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/core/**'
+
+'package:db':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/db/**'
+
+'package:queue':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/queue/**'
+
+'package:config':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/config/**'
+
+# Infrastructure
+'docker':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
+
+'ci/cd':
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
+
+# Documentation
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**'
+
+# Configuration
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '**/package.json'
+
+'config':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/.env.example'
+      - '**/tsconfig.json'
+      - 'turbo.json'
+      - '.editorconfig'
+
+# Testing
+'tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - 'vitest.config.ts'
