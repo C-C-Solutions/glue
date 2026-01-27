@@ -89,9 +89,10 @@ jobs:
     name: Build API
     needs: [detect-changes]
     if: |
-      always() && 
-      (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-api == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-api))
+      always() && (
+        (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-api == 'true') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-api))
+      )
     uses: ./.github/workflows/build-image.yml
     with:
       app-name: api
@@ -107,9 +108,10 @@ jobs:
     name: Build worker
     needs: [detect-changes]
     if: |
-      always() && 
-      (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-worker == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-worker))
+      always() && (
+        (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-worker == 'true') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-worker))
+      )
     uses: ./.github/workflows/build-image.yml
     with:
       app-name: worker

@@ -1,0 +1,100 @@
+name: Deployment Issue
+description: Report a problem with the CD pipeline or deployment
+title: "[Deployment] "
+labels: ["ci/cd", "deployment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a deployment issue! Please provide as much detail as possible.
+  
+  - type: dropdown
+    id: deployment-type
+    attributes:
+      label: Deployment Type
+      description: What type of deployment failed?
+      options:
+        - Automatic (push to main)
+        - Manual (workflow dispatch)
+        - Unknown
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: affected-app
+    attributes:
+      label: Affected App
+      description: Which app(s) had issues?
+      multiple: true
+      options:
+        - API
+        - Worker
+        - Both
+        - Not sure
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: failure-stage
+    attributes:
+      label: Failure Stage
+      description: At which stage did the deployment fail?
+      options:
+        - Change Detection
+        - Building Docker Image
+        - Pushing to Registry
+        - Coolify Deployment
+        - Other
+    validations:
+      required: true
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what happened and what you expected to happen
+      placeholder: "When I pushed to main, the API deployment failed with..."
+    validations:
+      required: true
+  
+  - type: textarea
+    id: workflow-logs
+    attributes:
+      label: Workflow Logs
+      description: Paste relevant logs from GitHub Actions
+      placeholder: |
+        Error: failed to solve: failed to push...
+      render: shell
+  
+  - type: textarea
+    id: coolify-logs
+    attributes:
+      label: Coolify Logs
+      description: Paste relevant logs from Coolify (if applicable)
+      placeholder: |
+        Deployment failed...
+      render: shell
+  
+  - type: input
+    id: workflow-run
+    attributes:
+      label: Workflow Run URL
+      description: Link to the failed GitHub Actions run
+      placeholder: "https://github.com/C-C-Solutions/glue/actions/runs/..."
+  
+  - type: input
+    id: commit
+    attributes:
+      label: Commit SHA
+      description: The commit that triggered the deployment
+      placeholder: "abc123..."
+  
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: |
+        - Recent changes to configuration
+        - Environment variable updates
+        - etc.
