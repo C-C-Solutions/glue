@@ -1,0 +1,179 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force-deploy-all:
+        description: 'Force deploy all apps (ignore change detection)'
+        required: false
+        type: boolean
+        default: false
+      deploy-api:
+        description: 'Deploy API app'
+        required: false
+        type: boolean
+        default: false
+      deploy-worker:
+        description: 'Deploy worker app'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+
+jobs:
+  # Detect which apps/packages changed
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    # Skip change detection if manual deploy requested
+    if: github.event_name != 'workflow_dispatch' || !inputs.force-deploy-all
+    outputs:
+      api-changed: ${{ steps.changes.outputs.api }}
+      worker-changed: ${{ steps.changes.outputs.worker }}
+      packages-changed: ${{ steps.changes.outputs.packages }}
+      infra-changed: ${{ steps.changes.outputs.infra }}
+      should-deploy-api: ${{ steps.decide.outputs.deploy-api }}
+      should-deploy-worker: ${{ steps.decide.outputs.deploy-worker }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect file changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            worker:
+              - 'apps/worker/**'
+            packages:
+              - 'packages/**'
+            infra:
+              - 'docker-compose.yml'
+              - '.github/workflows/**'
+              - 'apps/**/Dockerfile'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+      
+      - name: Decide what to deploy
+        id: decide
+        run: |
+          # If infrastructure changed, deploy everything
+          if [[ "${{ steps.changes.outputs.infra }}" == "true" ]]; then
+            echo "Infrastructure changed - deploying all apps"
+            echo "deploy-api=true" >> $GITHUB_OUTPUT
+            echo "deploy-worker=true" >> $GITHUB_OUTPUT
+          # If packages changed, deploy all apps (they depend on packages)
+          elif [[ "${{ steps.changes.outputs.packages }}" == "true" ]]; then
+            echo "Shared packages changed - deploying all apps"
+            echo "deploy-api=true" >> $GITHUB_OUTPUT
+            echo "deploy-worker=true" >> $GITHUB_OUTPUT
+          else
+            # Deploy only changed apps
+            echo "deploy-api=${{ steps.changes.outputs.api }}" >> $GITHUB_OUTPUT
+            echo "deploy-worker=${{ steps.changes.outputs.worker }}" >> $GITHUB_OUTPUT
+          fi
+  
+  # Build and push API image
+  build-api:
+    name: Build API
+    needs: [detect-changes]
+    if: |
+      always() && (
+        (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-api == 'true') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-api))
+      )
+    uses: ./.github/workflows/build-image.yml
+    with:
+      app-name: api
+      dockerfile-path: apps/api/Dockerfile
+      context: .
+      push: true
+    secrets:
+      registry-username: ${{ github.actor }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+  
+  # Build and push worker image
+  build-worker:
+    name: Build worker
+    needs: [detect-changes]
+    if: |
+      always() && (
+        (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.should-deploy-worker == 'true') ||
+        (github.event_name == 'workflow_dispatch' && (inputs.force-deploy-all || inputs.deploy-worker))
+      )
+    uses: ./.github/workflows/build-image.yml
+    with:
+      app-name: worker
+      dockerfile-path: apps/worker/Dockerfile
+      context: .
+      push: true
+    secrets:
+      registry-username: ${{ github.actor }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+  
+  # Deploy API to Coolify
+  deploy-api:
+    name: Deploy API
+    needs: [build-api]
+    if: |
+      always() && 
+      needs.build-api.result == 'success' &&
+      vars.COOLIFY_API_DEPLOYMENT_ID != ''
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      app-name: api
+      deployment-id: ${{ vars.COOLIFY_API_DEPLOYMENT_ID }}
+      environment: production
+    secrets:
+      coolify-token: ${{ secrets.COOLIFY_TOKEN }}
+      coolify-url: ${{ secrets.COOLIFY_URL }}
+  
+  # Deploy worker to Coolify
+  deploy-worker:
+    name: Deploy worker
+    needs: [build-worker]
+    if: |
+      always() && 
+      needs.build-worker.result == 'success' &&
+      vars.COOLIFY_WORKER_DEPLOYMENT_ID != ''
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      app-name: worker
+      deployment-id: ${{ vars.COOLIFY_WORKER_DEPLOYMENT_ID }}
+      environment: production
+    secrets:
+      coolify-token: ${{ secrets.COOLIFY_TOKEN }}
+      coolify-url: ${{ secrets.COOLIFY_URL }}
+  
+  # Summary job
+  summary:
+    name: Deployment summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, deploy-api, deploy-worker]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- API: ${{ needs.detect-changes.outputs.api-changed || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Worker: ${{ needs.detect-changes.outputs.worker-changed || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Packages: ${{ needs.detect-changes.outputs.packages-changed || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Infrastructure: ${{ needs.detect-changes.outputs.infra-changed || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Results" >> $GITHUB_STEP_SUMMARY
+          echo "- API: ${{ needs.deploy-api.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Worker: ${{ needs.deploy-worker.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY

@@ -1,5 +1,8 @@
 # glue
 
+[![CI](https://github.com/C-C-Solutions/glue/actions/workflows/ci.yml/badge.svg)](https://github.com/C-C-Solutions/glue/actions/workflows/ci.yml)
+[![CD](https://github.com/C-C-Solutions/glue/actions/workflows/cd.yml/badge.svg)](https://github.com/C-C-Solutions/glue/actions/workflows/cd.yml)
+
 An opinionated integration engine for connecting services, transforming data, and orchestrating workflows.
 
 ## 🚀 Features
@@ -232,6 +235,23 @@ Type checking:
 ```bash
 pnpm type-check
 ```
+
+## 🚀 Deployment
+
+The project uses continuous delivery to automatically deploy apps to Coolify when changes are pushed to `main`.
+
+### Quick Start
+
+1. **Set up Coolify**: Create resources for API and Worker apps
+2. **Configure secrets**: Add `COOLIFY_TOKEN` and `COOLIFY_URL` to GitHub repository
+3. **Set deployment IDs**: Add `COOLIFY_API_DEPLOYMENT_ID` and `COOLIFY_WORKER_DEPLOYMENT_ID` variables
+4. **Push to main**: Deployments happen automatically based on changed files
+
+### Deployment Strategy
+
+- **App changes**: Only affected apps are deployed (API or Worker)
+- **Package changes**: All apps are deployed (they depend on packages)
+- **Infrastructure changes**: Full redeploy of all apps
 
 ## 📝 Architecture
 

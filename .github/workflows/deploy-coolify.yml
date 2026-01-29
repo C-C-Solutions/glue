@@ -1,0 +1,121 @@
+name: Deploy to Coolify
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: 'Name of the app to deploy (api or worker)'
+        required: true
+        type: string
+      deployment-id:
+        description: 'Coolify deployment/resource UUID'
+        required: true
+        type: string
+      environment:
+        description: 'Deployment environment'
+        required: false
+        type: string
+        default: 'production'
+    secrets:
+      coolify-token:
+        description: 'Coolify API token'
+        required: true
+      coolify-url:
+        description: 'Coolify instance URL'
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.app-name }} to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    permissions:
+      contents: read
+      deployments: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ inputs.environment }}',
+              description: 'Deploy ${{ inputs.app-name }} to Coolify',
+              auto_merge: false,
+              required_contexts: []
+            });
+            return deployment.data.id;
+      
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'in_progress',
+              description: 'Deploying ${{ inputs.app-name }} to Coolify',
+              environment_url: '${{ secrets.coolify-url }}'
+            });
+      
+      - name: Trigger Coolify deployment
+        id: coolify
+        run: |
+          echo "Triggering deployment for ${{ inputs.app-name }} (ID: ${{ inputs.deployment-id }})"
+          
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            "${{ secrets.coolify-url }}/api/v1/deploy?uuid=${{ inputs.deployment-id }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.coolify-token }}" \
+            -H "Content-Type: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Deployment triggered successfully"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to trigger deployment"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'success',
+              description: 'Successfully deployed ${{ inputs.app-name }}',
+              environment_url: '${{ secrets.coolify-url }}'
+            });
+      
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'failure',
+              description: 'Failed to deploy ${{ inputs.app-name }}',
+              environment_url: '${{ secrets.coolify-url }}'
+            });
