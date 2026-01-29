@@ -21,6 +21,22 @@
       }
     },
     {
+      "id": "prepare_content",
+      "name": "Prepare Content for S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return JSON.stringify(data);",
+        "context": {
+          "data": "${steps.generate_test_data.data}"
+        }
+      },
+      "dependsOn": ["generate_test_data"]
+    },
+    {
       "id": "put_object",
       "name": "Upload Object to S3",
       "type": "connector",
@@ -35,10 +51,10 @@
       "parameters": {
         "action": "putObject",
         "key": "test-data/${steps.generate_test_data.data.testId}.json",
-        "content": "${steps.generate_test_data.data}",
+        "content": "${steps.prepare_content.data}",
         "contentType": "application/json"
       },
-      "dependsOn": ["generate_test_data"]
+      "dependsOn": ["prepare_content"]
     },
     {
       "id": "list_objects",
