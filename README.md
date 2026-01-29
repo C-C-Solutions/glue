@@ -253,6 +253,48 @@ The project uses continuous delivery to automatically deploy apps to Coolify whe
 - **Package changes**: All apps are deployed (they depend on packages)
 - **Infrastructure changes**: Full redeploy of all apps
 
+### Docker Build Process
+
+The API and Worker apps use **multi-stage Docker builds** for production deployment:
+
+**Build Stage:**
+- Installs dependencies from scratch using pnpm
+- Builds all TypeScript packages and apps
+- Creates compiled artifacts in the `dist` directories
+
+**Production Stage:**
+- Creates a minimal production image
+- Installs only production dependencies
+- Copies compiled artifacts from build stage
+- Results in smaller, more secure images
+
+**Benefits:**
+- ✅ No need for pre-built artifacts in the repository
+- ✅ Works seamlessly with Coolify's git-based deployments
+- ✅ Reproducible builds across environments
+- ✅ Optimized Docker layer caching for faster rebuilds
+
+### Deployment Monitoring
+
+GitHub Actions automatically monitors Coolify deployments:
+
+- **Trigger**: Each deployment is triggered via Coolify API
+- **Status Polling**: Polls deployment status every 30 seconds for up to 30 minutes
+- **Failure Detection**: Automatically detects and reports deployment failures
+- **Logs**: Displays Coolify deployment logs in GitHub Actions on failure
+- **GitHub Integration**: Updates GitHub deployment status for full visibility
+
+**Deployment States:**
+- `in_progress`: Deployment triggered and running
+- `success`: Deployment completed successfully
+- `failure`: Deployment failed (with logs)
+- `timeout`: Deployment took longer than 30 minutes
+
+You can view deployment status in:
+- GitHub Actions workflow runs
+- GitHub repository's "Environments" section
+- Coolify dashboard
+
 ## 📝 Architecture
 
 ### Workflow Definition
