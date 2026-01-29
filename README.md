@@ -326,6 +326,8 @@ BullMQ worker processes jobs from Redis queue:
 
 ## 🔒 Environment Variables
 
+### Core Application
+
 | Variable      | Description               | Default       |
 | ------------- | ------------------------- | ------------- |
 | `NODE_ENV`    | Environment               | `development` |
@@ -334,12 +336,25 @@ BullMQ worker processes jobs from Redis queue:
 | `REDIS_URL`   | Redis connection string   | Required      |
 | `LOG_LEVEL`   | Logging level             | `info`        |
 
+### AWS / LocalStack Configuration
+
+| Variable               | Description                                  | Default (LocalStack)       |
+| ---------------------- | -------------------------------------------- | -------------------------- |
+| `AWS_ENDPOINT_URL`     | AWS endpoint (use LocalStack for local dev)  | `http://localhost:4566`    |
+| `AWS_DEFAULT_REGION`   | AWS region                                   | `us-east-1`                |
+| `AWS_ACCESS_KEY_ID`    | AWS access key ID                            | `test` (for LocalStack)    |
+| `AWS_SECRET_ACCESS_KEY`| AWS secret access key                        | `test` (for LocalStack)    |
+| `S3_BUCKET`            | Default S3 bucket for workflows              | `glue-test-bucket`         |
+| `S3_ENDPOINT`          | S3-specific endpoint (if different from AWS) | `http://localhost:4566`    |
+
+**Note**: When using LocalStack in the dev container, use `http://localstack:4566` for `AWS_ENDPOINT_URL` and `S3_ENDPOINT` instead of `localhost`.
+
 ## 🐳 Docker Compose Configuration
 
 This repository uses the **extension pattern** for docker-compose files to maintain a single source of truth:
 
 - **`docker-compose.yml`** (root): Defines infrastructure services (MongoDB, Redis) as they exist in production/staging
-- **`.devcontainer/docker-compose.override.yml`**: Contains only dev-specific overrides (app service, dev volumes, shared network)
+- **`.devcontainer/docker-compose.override.yml`**: Contains only dev-specific overrides (app service, dev volumes, shared network, LocalStack)
 
 ### Why This Pattern?
 
@@ -348,18 +363,62 @@ This approach ensures that:
 - Infrastructure changes are made in one place and automatically apply to dev containers
 - Dev and production configurations never drift apart
 - Dev-specific settings (like volume mounts, network modes) don't pollute the base configuration
-- Dev container uses separate volumes (`mongodb-data-dev`, `redis-data-dev`) to isolate development data from standalone usage
+- Dev container uses separate volumes (`mongodb-data-dev`, `redis-data-dev`, `localstack-data`) to isolate development data from standalone usage
+
+### LocalStack for AWS Services
+
+The dev container includes [LocalStack](https://localstack.cloud/) for mocking AWS services during local development and testing:
+
+- **Services**: Currently configured for S3 (can be extended to include SQS, SNS, DynamoDB, etc.)
+- **Endpoint**: `http://localstack:4566` (within container) or `http://localhost:4566` (from host)
+- **Credentials**: Use `test` / `test` for access key and secret
+- **Region**: `us-east-1`
+
+#### Setting up LocalStack
+
+After starting the dev container, initialize the S3 bucket:
+
+```bash
+# Run the setup script
+./scripts/setup-localstack.sh
+
+# Or manually create the bucket
+aws --endpoint-url=http://localhost:4566 s3 mb s3://glue-test-bucket
+```
+
+#### Testing S3 Connector with LocalStack
+
+Use the provided example workflow to test S3 operations:
+
+```bash
+# Start the API and worker
+pnpm dev
+
+# In another terminal, create and execute the LocalStack test workflow
+curl -X POST http://localhost:3000/workflows \
+  -H "Content-Type: application/json" \
+  -d @examples/12-localstack-s3-test.json
+
+curl -X POST http://localhost:3000/workflows/localstack-s3-test/execute \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The workflow tests all S3 operations: `putObject`, `getObject`, and `listObjects`.
 
 ### Using Docker Compose Standalone
 
 For manual development (without devcontainer):
 
 ```bash
-# Start infrastructure only
-docker compose up -d
+# Start infrastructure (MongoDB, Redis, LocalStack)
+docker compose -f docker-compose.yml -f .devcontainer/docker-compose.override.yml up -d
+
+# Initialize LocalStack
+./scripts/setup-localstack.sh
 
 # Stop infrastructure
-docker compose down
+docker compose -f docker-compose.yml -f .devcontainer/docker-compose.override.yml down
 ```
 
 ### Dev Container Usage
@@ -367,6 +426,6 @@ docker compose down
 The devcontainer automatically loads both files in sequence:
 
 1. First, the base `docker-compose.yml` (infrastructure)
-2. Then, `.devcontainer/docker-compose.override.yml` (dev overrides)
+2. Then, `.devcontainer/docker-compose.override.yml` (dev overrides including LocalStack)
 
-Services use the default Docker network; use service names (e.g., `mongodb`, `redis`) as hosts — for example `mongodb://mongodb:27017` and `redis://redis:6379`.
+Services use the default Docker network; use service names (e.g., `mongodb`, `redis`, `localstack`) as hosts — for example `mongodb://mongodb:27017`, `redis://redis:6379`, and `http://localstack:4566`.
