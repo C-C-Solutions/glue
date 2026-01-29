@@ -14,10 +14,19 @@ services:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - PORT=3000
+      # LocalStack AWS configuration
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - S3_BUCKET=glue-test-bucket
+      - S3_ENDPOINT=http://localstack:4566
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      localstack:
         condition: service_healthy
 
   # Override API for dev-specific settings
@@ -50,6 +59,34 @@ services:
     networks:
       - default
 
+  # LocalStack for AWS service mocking
+  localstack:
+    image: localstack/localstack:latest
+    container_name: glue-localstack
+    ports:
+      - "4566:4566"  # LocalStack edge port
+      - "4510-4559:4510-4559"  # External service port range
+    environment:
+      - SERVICES=s3  # Start with S3; add other services as needed (sqs,sns,dynamodb,etc.)
+      - DEBUG=1
+      - PERSISTENCE=1  # Enable state persistence
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - localstack-data:/var/lib/localstack  # Persist LocalStack state
+      - /var/run/docker.sock:/var/run/docker.sock  # Required for Lambda execution (dev only, NOT for production)
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   mongodb-data-dev:
   redis-data-dev:
+  localstack-data:

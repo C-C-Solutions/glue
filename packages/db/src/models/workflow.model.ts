@@ -45,6 +45,7 @@ const workflowSchema = new Schema<WorkflowDocument>(
           required: true,
         },
         config: { type: Schema.Types.Mixed, required: true },
+        parameters: { type: Schema.Types.Mixed }, // Runtime-configurable parameters with variable interpolation
         retryPolicy: {
           maxAttempts: { type: Number },
           delayMs: { type: Number },

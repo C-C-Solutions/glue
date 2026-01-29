@@ -1,4 +1,4 @@
-import { StepDefinition, StepExecution } from '../types';
+import { StepDefinition, StepExecution, StepConfig } from '../types';
 import { 
   BaseConnector, 
   HttpConnector,
@@ -60,6 +60,12 @@ export class StepRunner {
     };
     
     try {
+      // Resolve config with parameter context
+      let resolvedConfig = step.config;
+      if (parameterContext) {
+        resolvedConfig = this.parameterResolver.resolve(step.config as Record<string, unknown>, parameterContext) as typeof step.config;
+      }
+      
       // Resolve parameters if provided
       let resolvedInput = input;
       if (step.parameters && parameterContext) {
@@ -72,15 +78,15 @@ export class StepRunner {
       
       switch (step.type) {
         case 'connector':
-          output = await this.executeConnector(step, resolvedInput);
+          output = await this.executeConnector(resolvedConfig, resolvedInput);
           break;
           
         case 'transformer':
-          output = await this.executeTransformer(step, resolvedInput);
+          output = await this.executeTransformer(resolvedConfig, resolvedInput);
           break;
           
         case 'condition':
-          output = await this.executeCondition(step, resolvedInput, context);
+          output = await this.executeCondition(resolvedConfig, resolvedInput, context);
           break;
           
         default:
@@ -106,17 +112,17 @@ export class StepRunner {
    * Execute connector step
    */
   private async executeConnector(
-    step: StepDefinition,
+    config: StepConfig,
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    const connectorType = (step.config as any).connectorType || 'http';
+    const connectorType = (config as any).connectorType || 'http';
     const connector = this.connectors.get(connectorType);
     
     if (!connector) {
       throw new Error(`Connector not found: ${connectorType}`);
     }
     
-    const result = await connector.execute(step.config, input);
+    const result = await connector.execute(config, input);
     
     if (!result.success) {
       throw new Error(result.error?.message || 'Connector execution failed');
@@ -129,10 +135,10 @@ export class StepRunner {
    * Execute transformer step
    */
   private async executeTransformer(
-    step: StepDefinition,
+    config: StepConfig,
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    const mapping = (step.config as any).mapping || {};
+    const mapping = (config as any).mapping || {};
     return this.transformer.transform(input, mapping);
   }
   
@@ -140,12 +146,12 @@ export class StepRunner {
    * Execute condition step
    */
   private async executeCondition(
-    step: StepDefinition,
+    config: StepConfig,
     input: Record<string, unknown>,
     _context: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     // Simple condition evaluation (can be extended)
-    const condition = (step.config as any).condition;
+    const condition = (config as any).condition;
     const result = this.evaluateCondition(condition, input);
     return { conditionMet: result };
   }

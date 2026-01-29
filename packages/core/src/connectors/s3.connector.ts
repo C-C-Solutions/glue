@@ -255,6 +255,7 @@ export class S3Connector extends BaseConnector {
           secretAccessKey: config.secretAccessKey,
         },
         endpoint: config.endpoint,
+        forcePathStyle: true, // Required for LocalStack and S3-compatible services
       });
 
       this.clients.set(key, client);

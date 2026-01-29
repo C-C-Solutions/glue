@@ -1,0 +1,123 @@
+{
+  "id": "localstack-s3-test",
+  "name": "LocalStack S3 Operations Test",
+  "version": "1.0.0",
+  "description": "Comprehensive test for S3 connector using LocalStack - tests putObject, getObject, and listObjects operations",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "generate_test_data",
+      "name": "Generate Test Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return { message: 'Hello from LocalStack!', timestamp: new Date().toISOString(), testId: Math.random().toString(36).substring(7) };",
+        "context": {}
+      }
+    },
+    {
+      "id": "prepare_content",
+      "name": "Prepare Content for S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "return JSON.stringify(data);",
+        "context": {
+          "data": "${steps.generate_test_data.data}"
+        }
+      },
+      "dependsOn": ["generate_test_data"]
+    },
+    {
+      "id": "put_object",
+      "name": "Upload Object to S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "${env.AWS_DEFAULT_REGION}",
+        "bucket": "${env.S3_BUCKET}",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": "${env.S3_ENDPOINT}"
+      },
+      "parameters": {
+        "action": "putObject",
+        "key": "test-data/${steps.generate_test_data.data.testId}.json",
+        "content": "${steps.prepare_content.data}",
+        "contentType": "application/json"
+      },
+      "dependsOn": ["prepare_content"]
+    },
+    {
+      "id": "list_objects",
+      "name": "List Objects in S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "${env.AWS_DEFAULT_REGION}",
+        "bucket": "${env.S3_BUCKET}",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": "${env.S3_ENDPOINT}"
+      },
+      "parameters": {
+        "action": "listObjects",
+        "prefix": "test-data/",
+        "maxKeys": 100
+      },
+      "dependsOn": ["put_object"]
+    },
+    {
+      "id": "get_object",
+      "name": "Retrieve Object from S3",
+      "type": "connector",
+      "config": {
+        "connectorType": "s3",
+        "region": "${env.AWS_DEFAULT_REGION}",
+        "bucket": "${env.S3_BUCKET}",
+        "accessKeyId": "${env.AWS_ACCESS_KEY_ID}",
+        "secretAccessKey": "${env.AWS_SECRET_ACCESS_KEY}",
+        "endpoint": "${env.S3_ENDPOINT}"
+      },
+      "parameters": {
+        "action": "getObject",
+        "key": "test-data/${steps.generate_test_data.data.testId}.json"
+      },
+      "dependsOn": ["list_objects"]
+    },
+    {
+      "id": "verify_data",
+      "name": "Verify Retrieved Data",
+      "type": "connector",
+      "config": {
+        "connectorType": "javascript",
+        "timeout": 5000
+      },
+      "parameters": {
+        "code": "const retrieved = JSON.parse(content); return { success: retrieved.testId === original.testId, original: original, retrieved: retrieved };",
+        "context": {
+          "content": "${steps.get_object.data.content}",
+          "original": "${steps.generate_test_data.data}"
+        }
+      },
+      "dependsOn": ["get_object"]
+    }
+  ],
+  "errorHandling": {
+    "onError": "stop",
+    "maxRetries": 2
+  },
+  "metadata": {
+    "author": "glue-team",
+    "tags": ["test", "localstack", "s3", "aws"],
+    "notes": "This workflow tests S3 connector with LocalStack. It performs: 1) Generate test data, 2) Upload to S3, 3) List objects, 4) Download object, 5) Verify data integrity. Requires LocalStack running with S3 service enabled and environment variables: S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, S3_ENDPOINT."
+  }
+}
