@@ -27,7 +27,17 @@ BUCKET_NAME=${S3_BUCKET:-glue-test-bucket}
 echo "📦 Creating S3 bucket: $BUCKET_NAME"
 
 # Create S3 bucket using AWS CLI
-aws --endpoint-url=http://localhost:4566 s3 mb s3://$BUCKET_NAME 2>/dev/null || echo "   Bucket already exists or error creating"
+if aws --endpoint-url=http://localhost:4566 s3 mb s3://$BUCKET_NAME 2>/dev/null; then
+  echo "   Bucket '$BUCKET_NAME' created successfully"
+else
+  # Check if bucket already exists
+  if aws --endpoint-url=http://localhost:4566 s3 ls | grep -q $BUCKET_NAME; then
+    echo "   Bucket '$BUCKET_NAME' already exists"
+  else
+    echo "❌ Failed to create bucket '$BUCKET_NAME'"
+    exit 1
+  fi
+fi
 
 # Verify bucket exists
 if aws --endpoint-url=http://localhost:4566 s3 ls | grep -q $BUCKET_NAME; then

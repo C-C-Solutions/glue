@@ -1,4 +1,4 @@
-# LocalStack Integration - Summary
+# LocalStack Integration Guide
 
 ## Overview
 

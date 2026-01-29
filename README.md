@@ -340,14 +340,17 @@ BullMQ worker processes jobs from Redis queue:
 
 | Variable               | Description                                  | Default (LocalStack)       |
 | ---------------------- | -------------------------------------------- | -------------------------- |
-| `AWS_ENDPOINT_URL`     | AWS endpoint (use LocalStack for local dev)  | `http://localhost:4566`    |
+| `AWS_ENDPOINT_URL`     | AWS endpoint (use LocalStack for local dev)  | `http://localhost:4566` (host) / `http://localstack:4566` (container) |
 | `AWS_DEFAULT_REGION`   | AWS region                                   | `us-east-1`                |
 | `AWS_ACCESS_KEY_ID`    | AWS access key ID                            | `test` (for LocalStack)    |
 | `AWS_SECRET_ACCESS_KEY`| AWS secret access key                        | `test` (for LocalStack)    |
 | `S3_BUCKET`            | Default S3 bucket for workflows              | `glue-test-bucket`         |
-| `S3_ENDPOINT`          | S3-specific endpoint (if different from AWS) | `http://localhost:4566`    |
+| `S3_ENDPOINT`          | S3-specific endpoint (if different from AWS) | `http://localhost:4566` (host) / `http://localstack:4566` (container) |
 
-**Note**: When using LocalStack in the dev container, use `http://localstack:4566` for `AWS_ENDPOINT_URL` and `S3_ENDPOINT` instead of `localhost`.
+**Note**: 
+- When running via **dev container**, these variables are pre-configured in docker-compose.override.yml with container hostnames (e.g., `http://localstack:4566`)
+- When running on **host** (outside container), use `.env` file with localhost URLs (e.g., `http://localhost:4566`)
+- The `.env.example` file shows host-based values as a reference
 
 ## 🐳 Docker Compose Configuration
 
