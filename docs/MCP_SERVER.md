@@ -35,6 +35,8 @@ All API endpoints are available as MCP tools:
 ### Webhook Management
 - `list_webhooks` - Get all workflows registered as webhook endpoints
 
+For practical usage examples with AI assistants, see [MCP_USAGE_EXAMPLES.md](./MCP_USAGE_EXAMPLES.md).
+
 ## Running the MCP Server
 
 ### Development Mode

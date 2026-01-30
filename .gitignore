@@ -12,6 +12,10 @@ build
 .env.local
 .env.*.local
 
+# MCP configuration (local only, use mcp-config.example.json as template)
+mcp-config.json
+claude_desktop_config.json
+
 # Logs
 logs
 *.log

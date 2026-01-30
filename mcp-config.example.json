@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/servers/main/schema.json",
+  "mcpServers": {
+    "glue-workflow-api": {
+      "command": "node",
+      "args": [
+        "/path/to/glue/apps/api/dist/mcp-server.js"
+      ],
+      "env": {
+        "MONGODB_URI": "mongodb://localhost:27017/glue",
+        "REDIS_URL": "redis://localhost:6379",
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
