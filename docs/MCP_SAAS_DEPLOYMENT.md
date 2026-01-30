@@ -251,7 +251,7 @@ server {
     }
 
     # MCP health check
-    location /mcp-health {
+    location /health {
         proxy_pass http://localhost:3001/health;
     }
 }
@@ -313,9 +313,11 @@ spec:
 
 ## Security Considerations
 
-### Authentication (Coming Soon)
+> **⚠️ IMPORTANT**: The HTTP/SSE MCP server currently does not include authentication. For production deployments, you **MUST** implement authentication and authorization to prevent unauthorized access to your workflows and data. Do not deploy to production without adding proper security measures.
 
-For production deployments, consider adding authentication:
+### Authentication (Required for Production)
+
+Implement authentication before deploying to production. Example using API key authentication:
 
 ```typescript
 // Example middleware for API key authentication
@@ -327,6 +329,12 @@ app.use((req, res, next) => {
   next();
 });
 ```
+
+**Recommended authentication methods:**
+- API keys with key rotation
+- OAuth 2.0 / OpenID Connect
+- JWT tokens
+- mTLS (mutual TLS) for server-to-server communication
 
 ### Rate Limiting
 
@@ -358,7 +366,7 @@ Always use HTTPS in production. The examples above show Nginx SSL configuration.
 Monitor the MCP server health:
 
 ```bash
-curl https://glue.corbinmurray.dev/mcp-health
+curl https://glue.corbinmurray.dev/health
 ```
 
 Response:
@@ -404,7 +412,7 @@ Error: Failed to connect to SSE endpoint
 ```
 
 **Solutions**:
-1. Verify the server is running: `curl https://glue.corbinmurray.dev/mcp-health`
+1. Verify the server is running: `curl https://glue.corbinmurray.dev/health`
 2. Check CORS configuration in `MCP_ALLOWED_ORIGINS`
 3. Ensure firewall allows traffic on the MCP port
 4. Verify SSL certificate is valid
