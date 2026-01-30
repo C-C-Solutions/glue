@@ -219,19 +219,27 @@ curl http://localhost:3000/executions/{execution-id}
 
 Glue now supports MCP, enabling AI agents and assistants to interact with all API endpoints as tools. This allows AI assistants like Claude to autonomously discover and use workflow management features.
 
+**Two Transport Modes:**
+- **Stdio** - For local AI assistants (Claude Desktop)
+- **HTTP/SSE** - For remote access and SaaS deployments
+
 ### Quick Start with MCP
 
+**Local (Stdio):**
 ```bash
-# Start the MCP server (development)
 cd apps/api
-pnpm dev:mcp
-
-# Or in production
-pnpm build
-pnpm start:mcp
+pnpm dev:mcp        # Development
+pnpm start:mcp      # Production (after build)
 ```
 
-### Configure with Claude Desktop
+**Remote/SaaS (HTTP/SSE):**
+```bash
+cd apps/api
+pnpm dev:mcp-http   # Development (runs on port 3001)
+pnpm start:mcp-http # Production (after build)
+```
+
+### Configure with Claude Desktop (Local)
 
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -249,6 +257,21 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
   }
 }
 ```
+
+### Remote Access (SaaS)
+
+For hosted APIs (e.g., `https://glue.corbinmurray.dev`) and remote clients (n8n, LangChain, etc.):
+
+```bash
+# Set environment variables
+MCP_HTTP_PORT=3001
+MCP_ALLOWED_ORIGINS=https://your-app.com
+
+# Start HTTP/SSE server
+pnpm start:mcp-http
+```
+
+See [docs/MCP_SAAS_DEPLOYMENT.md](./docs/MCP_SAAS_DEPLOYMENT.md) for complete SaaS deployment guide.
 
 ### Available MCP Tools
 

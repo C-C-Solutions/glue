@@ -37,6 +37,12 @@ The Glue Workflow API now includes MCP server support, enabling AI agents and as
 
 Model Context Protocol (MCP) is a standardized protocol for connecting external tools, resources, and prompts to AI agents. This implementation exposes all Glue API endpoints as MCP tools, allowing AI assistants like Claude to autonomously discover and use workflow management features.
 
+**Transport Modes:**
+- **Stdio Transport** - For local AI assistants (Claude Desktop) running on the same machine
+- **HTTP/SSE Transport** - For remote access, SaaS deployments, and decoupled applications (n8n, LangChain, etc.)
+
+> **📘 For SaaS/Remote Deployments:** See [MCP_SAAS_DEPLOYMENT.md](./MCP_SAAS_DEPLOYMENT.md) for comprehensive guidance on using MCP with hosted APIs and remote clients.
+
 ## Available MCP Tools
 
 All API endpoints are available as MCP tools:
@@ -70,7 +76,11 @@ For practical usage examples with AI assistants, see [MCP_USAGE_EXAMPLES.md](./M
 
 ## Running the MCP Server
 
-### Development Mode
+### Stdio Transport (Local)
+
+Best for local AI assistants like Claude Desktop.
+
+#### Development Mode
 
 ```bash
 # From the root directory
@@ -78,7 +88,7 @@ cd apps/api
 pnpm dev:mcp
 ```
 
-### Production Mode
+#### Production Mode
 
 ```bash
 # Build first
@@ -87,6 +97,33 @@ pnpm build
 
 # Run the MCP server
 pnpm start:mcp
+```
+
+### HTTP/SSE Transport (Remote/SaaS)
+
+Best for hosted APIs and remote clients. See [MCP_SAAS_DEPLOYMENT.md](./MCP_SAAS_DEPLOYMENT.md) for full details.
+
+#### Development Mode
+
+```bash
+cd apps/api
+pnpm dev:mcp-http
+```
+
+#### Production Mode
+
+```bash
+cd apps/api
+pnpm build
+pnpm start:mcp-http
+```
+
+Server runs on `http://0.0.0.0:3001` by default. Configure via environment variables:
+
+```bash
+MCP_HTTP_PORT=3001
+MCP_HTTP_HOST=0.0.0.0
+MCP_ALLOWED_ORIGINS=*  # or comma-separated list of origins
 ```
 
 ## Configuration for AI Assistants
