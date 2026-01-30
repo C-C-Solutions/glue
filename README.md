@@ -147,13 +147,68 @@ pnpm dev
 
 ### API Endpoints
 
+**Health & Status**
 - `GET /health` - Health check
-- `POST /workflows` - Create workflow definition
-- `GET /workflows` - List workflows
-- `GET /workflows/:id` - Get workflow
-- `POST /workflows/:id/execute` - Execute workflow
-- `GET /executions/:id` - Get execution status
-- `POST /executions/:id/cancel` - Cancel execution
+
+**Connectors**
+- `POST /api/v1/connectors` - Create connector definition
+- `GET /api/v1/connectors` - List all connectors
+- `GET /api/v1/connectors/:id` - Get connector by ID
+- `PUT /api/v1/connectors/:id` - Update connector
+
+**Workflows**
+- `POST /api/v1/workflows` - Create workflow definition
+- `GET /api/v1/workflows` - List workflows
+- `GET /api/v1/workflows/:id` - Get workflow
+- `POST /api/v1/workflows/:id/execute` - Execute workflow
+- `GET /api/v1/executions/:id` - Get execution status
+- `POST /api/v1/executions/:id/cancel` - Cancel execution
+
+### Example: Manage Connectors
+
+Create reusable connector definitions that can be referenced in workflows:
+
+```bash
+# Create an HTTP connector
+curl -X POST http://localhost:3000/api/v1/connectors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "github-api",
+    "name": "GitHub API Connector",
+    "type": "http",
+    "description": "Connector for GitHub REST API",
+    "config": {
+      "url": "https://api.github.com",
+      "method": "GET",
+      "timeout": 5000
+    },
+    "auth": {
+      "type": "bearer",
+      "credentials": {
+        "token": "ghp_your_token_here"
+      }
+    }
+  }'
+
+# List all connectors
+curl http://localhost:3000/api/v1/connectors
+
+# Get a specific connector
+curl http://localhost:3000/api/v1/connectors/github-api
+
+# Update a connector
+curl -X PUT http://localhost:3000/api/v1/connectors/github-api \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Updated GitHub API connector",
+    "config": {
+      "timeout": 10000
+    }
+  }'
+
+# Filter connectors by type
+curl "http://localhost:3000/api/v1/connectors?type=http"
+```
 
 ### Example: Create and Execute a Workflow
 
@@ -161,7 +216,7 @@ The new **parameters-based approach** makes dependencies explicit and eliminates
 
 ```bash
 # Create a workflow with parameters
-curl -X POST http://localhost:3000/workflows \
+curl -X POST http://localhost:3000/api/v1/workflows \
   -H "Content-Type: application/json" \
   -d '{
     "id": "data-pipeline",
@@ -199,12 +254,12 @@ curl -X POST http://localhost:3000/workflows \
   }'
 
 # Execute the workflow
-curl -X POST http://localhost:3000/workflows/data-pipeline/execute \
+curl -X POST http://localhost:3000/api/v1/workflows/data-pipeline/execute \
   -H "Content-Type: application/json" \
   -d '{"recipientEmail": "user@example.com"}'
 
 # Check execution status
-curl http://localhost:3000/executions/{execution-id}
+curl http://localhost:3000/api/v1/executions/{execution-id}
 ```
 
 **Key Features:**
