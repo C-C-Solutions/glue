@@ -19,6 +19,7 @@ An opinionated integration engine for connecting services, transforming data, an
 - **Data Transformation**: JSONPath-based transformations
 - **Queue-based Processing**: BullMQ for reliable job processing
 - **REST API**: Fastify-based API for workflow management
+- **MCP Server**: Model Context Protocol support for AI agent integration
 - **Type Safety**: Full TypeScript support with Zod validation
 - **Persistence**: MongoDB for workflow and execution storage
 
@@ -213,6 +214,75 @@ curl http://localhost:3000/executions/{execution-id}
 - `${workflow.input.field}` references workflow inputs
 - `${env.VAR_NAME}` references environment variables
 - No transformer steps needed for simple data passing
+
+## 🤖 MCP (Model Context Protocol) Integration
+
+Glue now supports MCP, enabling AI agents and assistants to interact with all API endpoints as tools. This allows AI assistants like Claude to autonomously discover and use workflow management features.
+
+**Two Transport Modes:**
+- **Stdio** - For local AI assistants (Claude Desktop)
+- **HTTP/SSE** - For remote access and SaaS deployments
+
+### Quick Start with MCP
+
+**Local (Stdio):**
+```bash
+cd apps/api
+pnpm dev:mcp        # Development
+pnpm start:mcp      # Production (after build)
+```
+
+**Remote/SaaS (HTTP/SSE):**
+```bash
+cd apps/api
+pnpm dev:mcp-http   # Development (runs on port 3001)
+pnpm start:mcp-http # Production (after build)
+```
+
+### Configure with Claude Desktop (Local)
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "glue-workflow-api": {
+      "command": "node",
+      "args": ["/path/to/glue/apps/api/dist/mcp-server.js"],
+      "env": {
+        "MONGODB_URI": "mongodb://localhost:27017/glue",
+        "REDIS_URL": "redis://localhost:6379"
+      }
+    }
+  }
+}
+```
+
+### Remote Access (SaaS)
+
+For hosted APIs (e.g., `https://glue.corbinmurray.dev`) and remote clients (n8n, LangChain, etc.):
+
+```bash
+# Set environment variables
+MCP_HTTP_PORT=3001
+MCP_ALLOWED_ORIGINS=https://your-app.com
+
+# Start HTTP/SSE server
+pnpm start:mcp-http
+```
+
+See [docs/MCP_SAAS_DEPLOYMENT.md](./docs/MCP_SAAS_DEPLOYMENT.md) for complete SaaS deployment guide.
+
+### Available MCP Tools
+
+All API endpoints are available as MCP tools:
+- `health_check`, `create_workflow`, `list_workflows`, `get_workflow`
+- `execute_workflow`, `list_workflow_executions`, `get_job_status`
+- `get_execution`, `cancel_execution`
+- `publish_event`, `list_event_triggers`
+- `list_schedules`, `list_webhooks`
+
+For detailed documentation, see [docs/MCP_SERVER.md](./docs/MCP_SERVER.md).
 
 ## 🧪 Testing
 
