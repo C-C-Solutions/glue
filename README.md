@@ -253,6 +253,15 @@ The project uses continuous delivery to automatically deploy apps to Coolify whe
 - **Package changes**: All apps are deployed (they depend on packages)
 - **Infrastructure changes**: Full redeploy of all apps
 
+### Deployment Verification
+
+The CD workflow now includes **deployment status polling** to verify that Coolify deployments complete successfully:
+
+- **Automatic polling**: After triggering a deployment, the workflow polls Coolify's API to check deployment status
+- **Near real-time feedback**: Get feedback within seconds if a deployment fails (polls every 10 seconds)
+- **Configurable timeout**: Default 10-minute timeout (configurable via `poll-timeout-minutes` input)
+- **Detailed status reporting**: GitHub deployment status reflects actual Coolify deployment result (success, failure, timeout, or cancelled)
+
 ## 📝 Architecture
 
 ### Workflow Definition
