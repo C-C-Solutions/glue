@@ -16,7 +16,7 @@ export async function buildApp() {
   await app.register(plugins);
   
   // Register routes
-  await app.register(routes);
+  await app.register(routes, { prefix: '/api/v1' });
   
   return app;
 }
