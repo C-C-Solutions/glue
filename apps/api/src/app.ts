@@ -36,7 +36,6 @@ export async function buildApp() {
       tags: [
         { name: "health", description: "Health check endpoints" },
         { name: "workflows", description: "Workflow management" },
-        { name: "executions", description: "Workflow execution tracking" },
         { name: "events", description: "Event publishing and triggers" },
         { name: "schedules", description: "Scheduled workflow management" },
         { name: "webhooks", description: "Webhook management" },

@@ -14,17 +14,17 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "zod": "^3.22.4",
-    "pg": "^8.11.3",
-    "openai": "^4.20.1",
-    "nodemailer": "^7.0.7",
     "@aws-sdk/client-s3": "^3.454.0",
-    "graphql-request": "^6.1.0"
+    "graphql-request": "^6.1.0",
+    "nodemailer": "^7.0.7",
+    "openai": "^4.20.1",
+    "pg": "^8.11.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "@types/pg": "^8.10.9",
     "@types/nodemailer": "^6.4.14",
+    "@types/pg": "^8.10.9",
     "typescript": "^5.3.3",
     "vitest": "^1.0.4"
   }
