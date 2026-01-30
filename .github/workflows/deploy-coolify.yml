@@ -16,6 +16,11 @@ on:
         required: false
         type: string
         default: 'production'
+      poll-timeout-minutes:
+        description: 'Maximum time to wait for deployment completion (in minutes)'
+        required: false
+        type: number
+        default: 10
     secrets:
       coolify-token:
         description: 'Coolify API token'
@@ -85,15 +90,99 @@ jobs:
           
           if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
             echo "Deployment triggered successfully"
-            echo "status=success" >> $GITHUB_OUTPUT
+            
+            # Extract deployment UUID from response if available
+            deployment_uuid=$(echo "$body" | jq -r '.deployment_uuid // .uuid // empty' 2>/dev/null || echo "")
+            
+            if [ -n "$deployment_uuid" ]; then
+              echo "deployment_uuid=$deployment_uuid" >> $GITHUB_OUTPUT
+              echo "Deployment UUID: $deployment_uuid"
+            else
+              echo "Warning: Could not extract deployment UUID from response"
+            fi
+            
+            echo "status=triggered" >> $GITHUB_OUTPUT
           else
             echo "Failed to trigger deployment"
             echo "status=failure" >> $GITHUB_OUTPUT
             exit 1
           fi
       
+      - name: Poll deployment status
+        id: poll
+        if: steps.coolify.outputs.deployment_uuid != ''
+        run: |
+          DEPLOYMENT_UUID="${{ steps.coolify.outputs.deployment_uuid }}"
+          TIMEOUT_MINUTES=${{ inputs.poll-timeout-minutes }}
+          MAX_ATTEMPTS=$((TIMEOUT_MINUTES * 6))  # 6 attempts per minute (every 10 seconds)
+          ATTEMPT=0
+          
+          echo "Polling deployment status for UUID: $DEPLOYMENT_UUID"
+          echo "Maximum wait time: $TIMEOUT_MINUTES minutes ($MAX_ATTEMPTS attempts)"
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking deployment status..."
+            
+            response=$(curl -s -w "\n%{http_code}" -X GET \
+              "${{ secrets.coolify-url }}/api/v1/deployments/$DEPLOYMENT_UUID" \
+              -H "Authorization: Bearer ${{ secrets.coolify-token }}" \
+              -H "Content-Type: application/json")
+            
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | head -n-1)
+            
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              # Parse the status from the response
+              status=$(echo "$body" | jq -r '.status // empty' 2>/dev/null || echo "")
+              
+              echo "Current status: $status"
+              
+              # Check if deployment is complete
+              if [ "$status" = "finished" ] || [ "$status" = "success" ]; then
+                echo "✅ Deployment completed successfully!"
+                echo "final_status=success" >> $GITHUB_OUTPUT
+                exit 0
+              elif [ "$status" = "failed" ] || [ "$status" = "error" ]; then
+                echo "❌ Deployment failed!"
+                echo "final_status=failed" >> $GITHUB_OUTPUT
+                exit 1
+              elif [ "$status" = "cancelled" ]; then
+                echo "⚠️ Deployment was cancelled"
+                echo "final_status=cancelled" >> $GITHUB_OUTPUT
+                exit 1
+              else
+                # Status is still in progress (running, queued, etc.)
+                echo "Deployment in progress (status: $status)..."
+              fi
+            else
+              echo "Warning: Failed to fetch deployment status (HTTP $http_code)"
+              echo "Response: $body"
+            fi
+            
+            # Wait before next attempt (unless this was the last attempt)
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              sleep 10
+            fi
+          done
+          
+          # If we get here, we've timed out
+          echo "⏱️ Deployment status polling timed out after $TIMEOUT_MINUTES minutes"
+          echo "final_status=timeout" >> $GITHUB_OUTPUT
+          exit 1
+      
+      - name: Warning - No deployment UUID
+        if: steps.coolify.outputs.deployment_uuid == ''
+        run: |
+          echo "⚠️ Warning: Could not extract deployment UUID from Coolify response."
+          echo "Deployment status polling is not available."
+          echo "The deployment was triggered, but we cannot verify its completion status."
+          echo "This may happen with older Coolify versions or certain API response formats."
+          echo ""
+          echo "Please check your Coolify dashboard to verify deployment status manually."
+      
       - name: Set deployment status to success
-        if: success()
+        if: success() && steps.poll.outputs.final_status == 'success'
         uses: actions/github-script@v7
         with:
           script: |
@@ -102,20 +191,32 @@ jobs:
               repo: context.repo.repo,
               deployment_id: ${{ steps.deployment.outputs.result }},
               state: 'success',
-              description: 'Successfully deployed ${{ inputs.app-name }}',
+              description: 'Successfully deployed ${{ inputs.app-name }} to Coolify',
               environment_url: '${{ secrets.coolify-url }}'
             });
       
       - name: Set deployment status to failure
-        if: failure()
+        if: failure() || (steps.poll.outputs.final_status != '' && steps.poll.outputs.final_status != 'success')
         uses: actions/github-script@v7
         with:
           script: |
+            const status = '${{ steps.poll.outputs.final_status }}' || 'unknown';
+            const timeoutMinutes = '${{ inputs.poll-timeout-minutes }}';
+            let description = 'Failed to deploy ${{ inputs.app-name }}';
+            
+            if (status === 'timeout') {
+              description = `Deployment timed out after ${timeoutMinutes} minutes`;
+            } else if (status === 'cancelled') {
+              description = 'Deployment was cancelled';
+            } else if (status === 'failed') {
+              description = 'Deployment failed in Coolify';
+            }
+            
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               deployment_id: ${{ steps.deployment.outputs.result }},
               state: 'failure',
-              description: 'Failed to deploy ${{ inputs.app-name }}',
+              description: description,
               environment_url: '${{ secrets.coolify-url }}'
             });
