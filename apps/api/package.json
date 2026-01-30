@@ -14,13 +14,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fastify/cors": "^8.5.0",
+    "@fastify/swagger": "^8.0.0",
+    "@fastify/swagger-ui": "^4.0.0",
     "@glue/config": "workspace:*",
     "@glue/core": "workspace:*",
     "@glue/db": "workspace:*",
     "@glue/queue": "workspace:*",
-    "fastify": "^4.25.0",
-    "@fastify/cors": "^8.5.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "fastify": "^4.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

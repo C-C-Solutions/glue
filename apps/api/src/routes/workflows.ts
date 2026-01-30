@@ -24,112 +24,253 @@ const workflowRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * Create workflow definition
    */
-  fastify.post("/workflows", async (request, reply) => {
-    try {
-      const workflow = request.body as WorkflowDefinition;
+  fastify.post(
+    "/workflows",
+    {
+      schema: {
+        tags: ["workflows"],
+        summary: "Create a new workflow",
+        description: "Create a new workflow definition with steps and triggers",
+        body: {
+          type: "object",
+          required: ["id", "name", "version"],
+          properties: {
+            id: { type: "string", description: "Unique workflow identifier" },
+            name: { type: "string", description: "Workflow name" },
+            version: { type: "string", description: "Workflow version" },
+            description: { type: "string" },
+            steps: {
+              type: "array",
+              items: { type: "object" },
+            },
+            trigger: { type: "object" },
+          },
+        },
+        response: {
+          201: {
+            type: "object",
+            description: "Workflow created successfully",
+          },
+          400: {
+            type: "object",
+            properties: {
+              error: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const workflow = request.body as WorkflowDefinition;
 
-      // Validate required fields
-      if (!workflow.id || !workflow.name || !workflow.version) {
-        return reply.code(400).send({
-          error: "Missing required fields: id, name, version",
+        // Validate required fields
+        if (!workflow.id || !workflow.name || !workflow.version) {
+          return reply.code(400).send({
+            error: "Missing required fields: id, name, version",
+          });
+        }
+
+        const created = await workflowRepo.create(workflow);
+
+        // Register workflow with trigger manager
+        try {
+          const triggerManager = getTriggerManager();
+          await triggerManager.registerWorkflow(created);
+        } catch (error) {
+          fastify.log.warn(`Failed to register workflow trigger: ${error}`);
+        }
+
+        return reply.code(201).send(created);
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+          error: "Failed to create workflow",
+          message: error instanceof Error ? error.message : "Unknown error",
         });
       }
-
-      const created = await workflowRepo.create(workflow);
-      
-      // Register workflow with trigger manager
-      try {
-        const triggerManager = getTriggerManager();
-        await triggerManager.registerWorkflow(created);
-      } catch (error) {
-        fastify.log.warn(`Failed to register workflow trigger: ${error}`);
-      }
-      
-      return reply.code(201).send(created);
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send({
-        error: "Failed to create workflow",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
+    },
+  );
 
   /**
    * List all workflows
    */
-  fastify.get("/workflows", async (request, reply) => {
-    try {
-      const { limit = 100, skip = 0 } = request.query as any;
-      const workflows = await workflowRepo.findAll(Number(limit), Number(skip));
-      return reply.send({
-        workflows,
-        count: workflows.length,
-      });
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send({
-        error: "Failed to list workflows",
-      });
-    }
-  });
+  fastify.get(
+    "/workflows",
+    {
+      schema: {
+        tags: ["workflows"],
+        summary: "List all workflows",
+        description: "Retrieve a paginated list of all workflow definitions",
+        querystring: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              default: 100,
+              description: "Maximum number of workflows to return",
+            },
+            skip: {
+              type: "number",
+              default: 0,
+              description: "Number of workflows to skip",
+            },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              workflows: { type: "array", items: { type: "object" } },
+              count: { type: "number" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { limit = 100, skip = 0 } = request.query as any;
+        const workflows = await workflowRepo.findAll(
+          Number(limit),
+          Number(skip),
+        );
+        return reply.send({
+          workflows,
+          count: workflows.length,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+          error: "Failed to list workflows",
+        });
+      }
+    },
+  );
 
   /**
    * Get workflow by ID
    */
-  fastify.get("/workflows/:id", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const workflow = await workflowRepo.findById(id);
+  fastify.get(
+    "/workflows/:id",
+    {
+      schema: {
+        tags: ["workflows"],
+        summary: "Get workflow by ID",
+        description: "Retrieve a specific workflow definition by its ID",
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: {
+            id: { type: "string", description: "Workflow ID" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            description: "Workflow found",
+          },
+          404: {
+            type: "object",
+            properties: {
+              error: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const workflow = await workflowRepo.findById(id);
 
-      if (!workflow) {
-        return reply.code(404).send({
-          error: "Workflow not found",
+        if (!workflow) {
+          return reply.code(404).send({
+            error: "Workflow not found",
+          });
+        }
+
+        return reply.send(workflow);
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+          error: "Failed to get workflow",
         });
       }
-
-      return reply.send(workflow);
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send({
-        error: "Failed to get workflow",
-      });
-    }
-  });
+    },
+  );
 
   /**
    * Execute workflow
    */
-  fastify.post("/workflows/:id/execute", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const input = (request.body as any) || {};
+  fastify.post(
+    "/workflows/:id/execute",
+    {
+      schema: {
+        tags: ["workflows", "executions"],
+        summary: "Execute a workflow",
+        description: "Queue a workflow for execution with optional input data",
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: {
+            id: { type: "string", description: "Workflow ID" },
+          },
+        },
+        body: {
+          type: "object",
+          description: "Input data for workflow execution",
+          additionalProperties: true,
+        },
+        response: {
+          202: {
+            type: "object",
+            properties: {
+              message: { type: "string" },
+              jobId: { type: "string" },
+              workflowId: { type: "string" },
+            },
+          },
+          404: {
+            type: "object",
+            properties: {
+              error: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const input = (request.body as any) || {};
 
-      // Check if workflow exists
-      const workflow = await workflowRepo.findById(id);
-      if (!workflow) {
-        return reply.code(404).send({
-          error: "Workflow not found",
+        // Check if workflow exists
+        const workflow = await workflowRepo.findById(id);
+        if (!workflow) {
+          return reply.code(404).send({
+            error: "Workflow not found",
+          });
+        }
+
+        // Add job to queue
+        const queue = getWorkflowQueue();
+        const jobId = await queue.addExecuteJob(id, input);
+
+        return reply.code(202).send({
+          message: "Workflow execution queued",
+          jobId,
+          workflowId: id,
+        });
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+          error: "Failed to execute workflow",
+          message: error instanceof Error ? error.message : "Unknown error",
         });
       }
-
-      // Add job to queue
-      const queue = getWorkflowQueue();
-      const jobId = await queue.addExecuteJob(id, input);
-
-      return reply.code(202).send({
-        message: "Workflow execution queued",
-        jobId,
-        workflowId: id,
-      });
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send({
-        error: "Failed to execute workflow",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
+    },
+  );
 
   /**
    * List workflow executions
