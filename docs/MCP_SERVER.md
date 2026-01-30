@@ -2,6 +2,37 @@
 
 The Glue Workflow API now includes MCP server support, enabling AI agents and assistants to interact with all API endpoints as MCP tools.
 
+## Architecture Overview
+
+```
+┌─────────────────┐
+│  AI Assistant   │
+│ (Claude, etc.)  │
+└────────┬────────┘
+         │ stdio
+         │
+┌────────▼────────────────────────────────────────┐
+│           MCP Server                            │
+│  (apps/api/src/mcp-server.ts)                  │
+│                                                  │
+│  ┌──────────────────────────────────────────┐  │
+│  │  13 MCP Tools (server.ts)                │  │
+│  │  • health_check                          │  │
+│  │  • create_workflow, list_workflows, ...  │  │
+│  │  • execute_workflow, get_execution, ...  │  │
+│  │  • publish_event, list_schedules, ...    │  │
+│  └──────────────────────────────────────────┘  │
+└────────┬────────────────────────────────────────┘
+         │
+         │ Uses same infrastructure as REST API
+         │
+    ┌────▼─────┬──────────┬──────────┐
+    │          │          │          │
+┌───▼────┐ ┌──▼────┐ ┌───▼────┐ ┌──▼────────┐
+│MongoDB │ │ Redis │ │WorkRepo│ │ExecRepo   │
+└────────┘ └───────┘ └────────┘ └───────────┘
+```
+
 ## Overview
 
 Model Context Protocol (MCP) is a standardized protocol for connecting external tools, resources, and prompts to AI agents. This implementation exposes all Glue API endpoints as MCP tools, allowing AI assistants like Claude to autonomously discover and use workflow management features.
