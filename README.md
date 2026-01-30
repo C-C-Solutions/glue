@@ -258,7 +258,7 @@ The project uses continuous delivery to automatically deploy apps to Coolify whe
 The CD workflow now includes **deployment status polling** to verify that Coolify deployments complete successfully:
 
 - **Automatic polling**: After triggering a deployment, the workflow polls Coolify's API to check deployment status
-- **Real-time feedback**: Get immediate feedback in GitHub Actions if a deployment fails
+- **Near real-time feedback**: Get feedback within seconds if a deployment fails (polls every 10 seconds)
 - **Configurable timeout**: Default 10-minute timeout (configurable via `poll-timeout-minutes` input)
 - **Detailed status reporting**: GitHub deployment status reflects actual Coolify deployment result (success, failure, timeout, or cancelled)
 

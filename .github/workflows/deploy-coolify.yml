@@ -116,6 +116,8 @@ jobs:
           TIMEOUT_MINUTES=${{ inputs.poll-timeout-minutes }}
           MAX_ATTEMPTS=$((TIMEOUT_MINUTES * 6))  # 6 attempts per minute (every 10 seconds)
           ATTEMPT=0
+          CONSECUTIVE_FAILURES=0
+          MAX_CONSECUTIVE_FAILURES=5
           
           echo "Polling deployment status for UUID: $DEPLOYMENT_UUID"
           echo "Maximum wait time: $TIMEOUT_MINUTES minutes ($MAX_ATTEMPTS attempts)"
@@ -133,10 +135,18 @@ jobs:
             body=$(echo "$response" | head -n-1)
             
             if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              # Reset consecutive failures counter on success
+              CONSECUTIVE_FAILURES=0
+              
               # Parse the status from the response
               status=$(echo "$body" | jq -r '.status // empty' 2>/dev/null || echo "")
               
-              echo "Current status: $status"
+              if [ -z "$status" ]; then
+                echo "Warning: Could not parse status from response"
+                echo "Response: $body"
+              else
+                echo "Current status: $status"
+              fi
               
               # Check if deployment is complete
               if [ "$status" = "finished" ] || [ "$status" = "success" ]; then
@@ -151,13 +161,24 @@ jobs:
                 echo "⚠️ Deployment was cancelled"
                 echo "final_status=cancelled" >> $GITHUB_OUTPUT
                 exit 1
+              elif [ -z "$status" ]; then
+                # Status is empty/unparseable - continue but warn
+                echo "⚠️ Status is missing or unparseable, continuing..."
               else
                 # Status is still in progress (running, queued, etc.)
                 echo "Deployment in progress (status: $status)..."
               fi
             else
-              echo "Warning: Failed to fetch deployment status (HTTP $http_code)"
+              CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+              echo "⚠️ Failed to fetch deployment status (HTTP $http_code) - consecutive failures: $CONSECUTIVE_FAILURES/$MAX_CONSECUTIVE_FAILURES"
               echo "Response: $body"
+              
+              # Fail fast if we've had too many consecutive API failures
+              if [ $CONSECUTIVE_FAILURES -ge $MAX_CONSECUTIVE_FAILURES ]; then
+                echo "❌ Too many consecutive API failures. Coolify API may be unavailable."
+                echo "final_status=api_error" >> $GITHUB_OUTPUT
+                exit 1
+              fi
             fi
             
             # Wait before next attempt (unless this was the last attempt)
@@ -182,7 +203,7 @@ jobs:
           echo "Please check your Coolify dashboard to verify deployment status manually."
       
       - name: Set deployment status to success
-        if: success() && steps.poll.outputs.final_status == 'success'
+        if: success() && (steps.poll.outputs.final_status == 'success' || steps.poll.result == 'skipped')
         uses: actions/github-script@v7
         with:
           script: |
@@ -196,11 +217,11 @@ jobs:
             });
       
       - name: Set deployment status to failure
-        if: failure() || (steps.poll.outputs.final_status != '' && steps.poll.outputs.final_status != 'success')
+        if: failure() || (steps.poll.result == 'failure' && steps.poll.outputs.final_status != '')
         uses: actions/github-script@v7
         with:
           script: |
-            const status = '${{ steps.poll.outputs.final_status }}' || 'unknown';
+            const status = '${{ steps.poll.outputs.final_status }}';
             const timeoutMinutes = '${{ inputs.poll-timeout-minutes }}';
             let description = 'Failed to deploy ${{ inputs.app-name }}';
             
@@ -210,6 +231,8 @@ jobs:
               description = 'Deployment was cancelled';
             } else if (status === 'failed') {
               description = 'Deployment failed in Coolify';
+            } else if (status === 'api_error') {
+              description = 'Failed to verify deployment - Coolify API unavailable';
             }
             
             await github.rest.repos.createDeploymentStatus({
