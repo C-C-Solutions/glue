@@ -81,7 +81,7 @@ setTimeout(() => {
           
           if (response.result?.tools) {
             console.log(`\n✅ Success! Found ${response.result.tools.length} MCP tools:`);
-            response.result.tools.forEach((tool: any) => {
+            response.result.tools.forEach((tool) => {
               console.log(`  - ${tool.name}: ${tool.description}`);
             });
           }

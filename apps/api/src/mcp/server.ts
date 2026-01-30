@@ -269,10 +269,12 @@ export function createMCPServer(
             limit?: number;
             skip?: number;
           };
-          const workflows = await workflowRepo.findAll(
-            Number(limit),
-            Number(skip),
-          );
+          
+          // Validate pagination parameters
+          const validLimit = Math.max(1, Math.min(Number(limit), 1000));
+          const validSkip = Math.max(0, Number(skip));
+          
+          const workflows = await workflowRepo.findAll(validLimit, validSkip);
           return {
             content: [
               {
@@ -345,10 +347,14 @@ export function createMCPServer(
             skip?: number;
           };
 
+          // Validate pagination parameters
+          const validLimit = Math.max(1, Math.min(Number(limit), 1000));
+          const validSkip = Math.max(0, Number(skip));
+
           const executions = await executionRepo.findByWorkflowId(
             id,
-            Number(limit),
-            Number(skip),
+            validLimit,
+            validSkip,
           );
 
           return {
@@ -394,11 +400,16 @@ export function createMCPServer(
                 100,
                 0,
               );
-              execution = executions.find(
-                (e) =>
-                  Math.abs(new Date(e.startedAt).getTime() - job.processedOn!) <
-                  5000,
-              );
+              // Find execution that matches the approximate time (jobs and executions should be close in time)
+              // Only attempt correlation if job has been processed
+              if (job.processedOn) {
+                execution = executions.find(
+                  (e) =>
+                    Math.abs(
+                      new Date(e.startedAt).getTime() - job.processedOn!,
+                    ) < 5000,
+                );
+              }
             }
           } else if (jobData.type === "resume") {
             execution = await executionRepo.findById(jobData.executionId);
@@ -446,14 +457,16 @@ export function createMCPServer(
         case "cancel_execution": {
           const { id } = args as { id: string };
 
+          // Check if execution exists first
+          const existingExecution = await executionRepo.findById(id);
+          if (!existingExecution) {
+            throw new Error("Execution not found");
+          }
+
           // Update execution status to cancelled
           const execution = await executionRepo.update(id, {
             status: "cancelled",
           });
-
-          if (!execution) {
-            throw new Error("Execution not found");
-          }
 
           return {
             content: [
